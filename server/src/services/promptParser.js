@@ -105,7 +105,7 @@ function extractFloorSpecificRequirements(lowerText, totalFloors) {
 
     // Check bedrooms on GF
     const gfBhkMatch = clause.match(/(\d+|ek|one|do|two|teen|three|char|four)\s*[-]?\s*bhk/i);
-    const gfBedMatch = clause.match(/(\d+|ek|one|do|two|teen|three|char|four)\s*(?:bedroom|bedrooms|bed\s*room|kamre|kamra)/i);
+    const gfBedMatch = clause.match(/(\d+|ek|one|do|two|teen|three|char|four)[\s-]*(?:bedroom|bedrooms|bed\s*room|kamre|kamra)/i);
     if (gfBhkMatch) {
       const n = NUMBER_WORDS[gfBhkMatch[1].toLowerCase()] || parseInt(gfBhkMatch[1], 10) || 1;
       floorMap[0].bedrooms = n;
@@ -171,7 +171,7 @@ function extractFloorSpecificRequirements(lowerText, totalFloors) {
 
     // Check bedrooms on FF
     const ffBhkMatch = clause.match(/(\d+|ek|one|do|two|teen|three|char|four)\s*[-]?\s*bhk/i);
-    const ffBedMatch = clause.match(/(\d+|ek|one|do|two|teen|three|char|four)\s*(?:bedroom|bedrooms|bed\s*room|kamre|kamra)/i);
+    const ffBedMatch = clause.match(/(\d+|ek|one|do|two|teen|three|char|four)[\s-]*(?:bedroom|bedrooms|bed\s*room|kamre|kamra)/i);
     if (ffBhkMatch) {
       const n = NUMBER_WORDS[ffBhkMatch[1].toLowerCase()] || parseInt(ffBhkMatch[1], 10) || 1;
       floorMap[1].bedrooms = n;
@@ -334,7 +334,7 @@ export function parsePromptRequirements(promptText = '') {
   } else {
     // Global bedrooms extraction
     const bhkMatch = lower.match(/(\d+|ek|one|do|two|teen|three|char|four)\s*[-]?\s*bhk/i);
-    const bedMatch = lower.match(/(\d+|ek|one|do|two|teen|three|char|four)\s*(?:bedroom|bedrooms|bed\s*room|kamre|kamra)/i);
+    const bedMatch = lower.match(/(\d+|ek|one|do|two|teen|three|char|four)[\s-]*(?:bedroom|bedrooms|bed\s*room|kamre|kamra)/i);
 
     if (bhkMatch) {
       const val = bhkMatch[1].toLowerCase();
@@ -352,7 +352,7 @@ export function parsePromptRequirements(promptText = '') {
     }
 
     // Global bathrooms
-    const bathMatch = lower.match(/(\d+|ek|one|do|two|teen|three|char|four)\s*(?:bathroom|bathrooms|baths|washroom|washrooms|toilet|toilets|lat-?bath)/i);
+    const bathMatch = lower.match(/(\d+|ek|one|do|two|teen|three|char|four)[\s-]*(?:bathroom|bathrooms|baths|washroom|washrooms|toilet|toilets|lat-?bath)/i);
     if (bathMatch) {
       const val = bathMatch[1].toLowerCase();
       totalBathrooms = NUMBER_WORDS[val] || parseInt(val, 10) || 2;
@@ -487,6 +487,7 @@ export function parsePromptRequirements(promptText = '') {
   if (entertainmentRoom && floorsCount > 1) floorMap[1].entertainmentRoom = true;
   if (poolRoom && floorsCount > 1) floorMap[1].poolRoom = poolRoom;
   if (commonWashroom) floorMap[0].commonWashroom = true;
+  if (attachedBath) floorMap[0].attachedBath = true;
   if (masterBedroom) {
     floorMap[0].masterBedroom = true;
     floorMap[0].attachedBath = true;

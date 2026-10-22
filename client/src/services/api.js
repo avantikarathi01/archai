@@ -62,12 +62,12 @@ export async function parseRequirements(prompt) {
 /**
  * Generate procedural 2D floor-plan design from prompt or structured requirements
  */
-export async function generateDesign({ prompt, requirements, plotDimensions }) {
+export async function generateDesign({ prompt, requirements, plotDimensions, options }) {
   try {
     const response = await fetch('/api/generate-design', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, requirements, plotDimensions }),
+      body: JSON.stringify({ prompt, requirements, plotDimensions, options }),
     });
 
     const data = await response.json();

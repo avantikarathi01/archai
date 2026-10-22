@@ -634,10 +634,46 @@ export default function Canvas2D({
 
                   {/* Architectural Doors with Swing Arc & Jambs */}
                   {room.doors?.map((door, dIdx) => {
+                    const isNorth = door.wall === 'north' || door.wall === 'front';
+                    const isSouth = door.wall === 'south' || door.wall === 'rear';
+                    const isEast = door.wall === 'east';
+                    const isWest = door.wall === 'west';
+
+                    if (isEast || isWest) {
+                      const dh = Math.min(rl * 0.4, 24);
+                      const dx = isEast ? rx + rw : rx;
+                      const dy = ry + 12;
+
+                      return (
+                        <g key={dIdx} pointerEvents="none">
+                          <line x1={dx} y1={dy} x2={dx} y2={dy + dh} stroke="#070b13" strokeWidth="6" />
+                          <rect x={dx - 2} y={dy - 2} width="4" height="4" fill="#94a3b8" />
+                          <rect x={dx - 2} y={dy + dh - 2} width="4" height="4" fill="#94a3b8" />
+                          <line
+                            x1={dx}
+                            y1={dy}
+                            x2={isEast ? dx - dh : dx + dh}
+                            y2={dy}
+                            stroke="#38bdf8"
+                            strokeWidth="2"
+                          />
+                          <path
+                            d={isEast
+                              ? `M ${dx - dh} ${dy} A ${dh} ${dh} 0 0 1 ${dx} ${dy + dh}`
+                              : `M ${dx + dh} ${dy} A ${dh} ${dh} 0 0 0 ${dx} ${dy + dh}`}
+                            fill="none"
+                            stroke="#38bdf8"
+                            strokeWidth="1.2"
+                            strokeDasharray="2 2"
+                            strokeOpacity="0.85"
+                          />
+                        </g>
+                      );
+                    }
+
                     const dw = Math.min(rw * 0.4, 24);
                     const dx = rx + 12;
-                    const dy = door.wall === 'north' ? ry : ry + rl;
-                    const isNorth = door.wall === 'north';
+                    const dy = isNorth ? ry : ry + rl;
 
                     return (
                       <g key={dIdx} pointerEvents="none">

@@ -12,6 +12,7 @@
 
 import { parsePromptRequirements } from './promptParser.js';
 import { generateProceduralLayout } from './layoutGenerator.js';
+import { generateTopologicalLayout } from './topologicalLayoutSolver.js';
 import { validateLayout, generateRecommendations, COMPLIANCE_DISCLAIMER } from './architecturalRules.js';
 import { modifyLayout } from './modificationEngine.js';
 import { estimateDesignCost, COST_DISCLAIMER } from './costEstimator.js';
@@ -90,8 +91,11 @@ export class DesignService {
     // Build architectural brief
     const brief = this.buildArchitecturalBrief(reqs);
 
-    // Invoke procedural layout generator
-    const layout = generateProceduralLayout(reqs);
+    // Select generator engine (feature-flagged, default: legacy procedural engine)
+    const useTopological = options?.engine === 'topological' || reqs?.engine === 'topological';
+    const layout = useTopological
+      ? generateTopologicalLayout(reqs)
+      : generateProceduralLayout(reqs);
 
     // Run geometric validation
     const validation = validateLayout(layout);
@@ -108,11 +112,13 @@ export class DesignService {
 
     return {
       status: 'success',
-      generationMethod: 'deterministic_engine',
+      generationMethod: useTopological ? 'topological_solver' : 'deterministic_engine',
+      engine: useTopological ? 'topological_solver_v1' : 'procedural_v1',
       requirements: reqs,
       layout,
       brief,
       validation,
+      topologicalValidation: layout.topologicalValidation || null,
       recommendations: recommendations.recommendations,
       costEstimate,
       clarifications: layout.clarifications || reqs.clarifications || [],

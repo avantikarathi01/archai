@@ -73,6 +73,7 @@ export default function App() {
 
   // Prompt & Generator State
   const [promptText, setPromptText] = useState(SAMPLE_PRESETS[0].text);
+  const [selectedEngine, setSelectedEngine] = useState('topological'); // 'topological' | 'procedural'
   const [actionLoading, setActionLoading] = useState(false);
   const [designResult, setDesignResult] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
@@ -134,14 +135,18 @@ export default function App() {
     setActionLoading(false);
   };
 
-  const handleGenerateDesign = async (customPrompt, explicitDimensions = null) => {
+  const handleGenerateDesign = async (customPrompt, explicitDimensions = null, engineOverride = null) => {
     const textToRun = (typeof customPrompt === 'string' ? customPrompt : promptText).trim();
     if (!textToRun) return;
 
     setActionLoading(true);
     setErrorMessage(null);
 
-    const payload = { prompt: textToRun };
+    const activeEngine = engineOverride || selectedEngine;
+    const payload = {
+      prompt: textToRun,
+      options: { engine: activeEngine }
+    };
     if (explicitDimensions && explicitDimensions.width && explicitDimensions.length) {
       payload.plotDimensions = {
         width: Number(explicitDimensions.width),
@@ -154,7 +159,7 @@ export default function App() {
       setDesignResult(res.data);
       setErrorMessage(null);
     } else {
-      setErrorMessage(res.error || 'Failed to generate architectural layout. Please review plot dimensions and requirements.');
+      setErrorMessage(res.data?.error || res.error || 'Failed to generate architectural layout. Please review plot dimensions and requirements.');
       setDesignResult(null);
     }
     setActionLoading(false);
@@ -291,15 +296,40 @@ export default function App() {
               ))}
             </div>
 
-            {/* Actions Bar: Voice Input + Generate Button + Parse Only */}
-            <div className="prompt-actions-bar">
-              {/* Voice Input Integration */}
-              <VoiceInput
-                onTranscript={handleVoiceTranscript}
-                disabled={actionLoading}
-              />
+            {/* Actions Bar: Voice Input + Engine Selector + Generate Button + Parse Only */}
+            <div className="prompt-actions-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                {/* Voice Input Integration */}
+                <VoiceInput
+                  onTranscript={handleVoiceTranscript}
+                  disabled={actionLoading}
+                />
 
-              <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+                {/* Engine Selector */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', background: 'rgba(15, 23, 42, 0.7)', padding: '0.2rem 0.5rem', borderRadius: '8px', border: '1px solid #334155' }}>
+                  <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>Engine:</span>
+                  <button
+                    type="button"
+                    className={`btn ${selectedEngine === 'topological' ? 'btn-primary' : 'btn-ghost'}`}
+                    onClick={() => setSelectedEngine('topological')}
+                    style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', height: 'auto', lineHeight: '1.2' }}
+                    title="Topological constraint solver (Phase 1)"
+                  >
+                    📐 Topological
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn ${selectedEngine === 'procedural' ? 'btn-primary' : 'btn-ghost'}`}
+                    onClick={() => setSelectedEngine('procedural')}
+                    style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', height: 'auto', lineHeight: '1.2' }}
+                    title="Legacy procedural layout generator"
+                  >
+                    ⚙️ Legacy Procedural
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
                 <button
                   className="btn btn-secondary"
                   onClick={handleParseOnly}
@@ -541,11 +571,22 @@ export default function App() {
             {/* Workspace Header & Tab Switcher */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Home size={18} color="#38bdf8" />
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>
-                    {layout.metadata?.title}
-                  </h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <Home size={18} color="#38bdf8" />
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>
+                      {layout.metadata?.title || 'Architectural Floor Plan'}
+                    </h3>
+                  </div>
+                  {designResult?.engine === 'topological_solver_v1' ? (
+                    <span style={{ fontSize: '0.7rem', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', border: '1px solid #0284c7', padding: '0.15rem 0.55rem', borderRadius: '9999px', fontWeight: 600 }}>
+                      📐 Topological Solver v1
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: '0.7rem', background: 'rgba(148, 163, 184, 0.15)', color: '#94a3b8', border: '1px solid #475569', padding: '0.15rem 0.55rem', borderRadius: '9999px', fontWeight: 600 }}>
+                      ⚙️ Legacy Procedural v1
+                    </span>
+                  )}
                 </div>
                 <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '0.2rem 0 0' }}>
                   Room Area: <strong>{layout.summary?.roomAreaSumSqFt} sq ft</strong> | Built-up: <strong>{layout.summary?.totalBuiltUpAreaSqFt} sq ft</strong> | Carpet: ~{layout.summary?.totalCarpetAreaSqFt} sq ft | Ground Coverage:{' '}
