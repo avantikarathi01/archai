@@ -1,0 +1,11 @@
+{
+  "name": "archai-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ArchAI - AI-Powered Architectural Design Platform Workspace",
+  "scripts": {
+    "server": "npm --prefix server run dev",
+    "client": "npm --prefix client run dev",
+    "test:server": "npm --prefix server test"
+  }
+}
