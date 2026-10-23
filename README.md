@@ -1,311 +1,161 @@
 # ArchAI 🏛️✨
-> AI-Powered Architectural Design Platform
+> **AI-Powered Architectural Intelligence & Generative CAD Platform**
 
-ArchAI is a modern web platform designed to translate natural language house requirements (English and Hinglish) into 2D editable floor plans, interactive 3D house models, architectural validation checks, and construction cost estimates.
+ArchAI is an end-to-end architectural intelligence system that translates natural-language residential requirements (in English or conversational Hinglish) into code-compliant **2D CAD blueprints**, interactive **3D Three.js models** with an exploded multi-floor slider, **first-person walkthrough exploration**, measurable **Bill of Quantities (BOQ)**, budget-aware **multi-option design optimization**, and preliminary **climate and structural buildability analysis**.
 
----
-
-## Current Status: Phase 6 Immersive 3D House Simulator Complete 🏛️🎮✨
-
-ArchAI now features a game-like first-person architectural simulator (inspired by the open-world exploration mechanics of *The Sims* and *GTA*, designed strictly for architectural exploration):
-
-- **Complete House & Property Estate Generator:**
-  - *Boundary Compound Walls:* 6 ft perimeter masonry walls with coping slabs and setbacks framing the property.
-  - *Main & Pedestrian Entrance Gates:* Double-leaf vehicular gate (12 ft) and pedestrian wicket gate (3.5 ft) with realistic hinge pivots.
-  - *Gate Pillars & Lanterns:* Sturdy entrance gate pillars with illuminated pyramidal caps and warm exterior point-light lanterns.
-  - *Paved Driveway & Walkway:* Driveway connecting the vehicular gate directly into the parking bay, and pedestrian walkway linking the wicket gate to the entrance steps.
-  - *Garden Lawns & Landscaping:* Lush green lawns, procedural tiered architectural trees (trunks + stylized foliage cones), and perimeter boxwood hedges along compound walls.
-  - *Entrance Steps & Porch Canopy:* Raised entrance plinth steps and a cantilevered floating porch awning with slim steel columns and recessed downlights.
-  - *Roof Terrace & Parapet:* Upper roof terrace with perimeter safety parapet / railing.
-
-- **Direct User-Controlled First-Person Simulator (FPS):**
-  - *Controls:* `[W][A][S][D]` / Arrow keys for movement, `[Shift]` to sprint ($13.5\text{ ft/s}$ vs $7.0\text{ ft/s}$ walk), `[Space]` to jump/step up, `[Esc]` to exit.
-  - *Mouse Look:* High-precision mouse look with Pointer Lock API support and smooth drag-look fallback. Vertical pitch clamped strictly to $[-83^\circ, +83^\circ]$ to prevent gimbal flipping.
-  - *Virtual Touch Controls:* On-screen touch D-pad, sprint toggle, and interaction buttons for mobile and tablet touchscreens.
-  - *Outside Spawn Point:* Automatically spawns outside on the approach street in front of the entrance gate, looking directly toward the house at eye level ($Y = 5.5\text{ ft}$).
-
-- **Solid Collision Detection & Smooth Wall Sliding:**
-  - *Axis-Separated Collision Solver:* Decomposes movement into independent $X$ and $Z$ axes. When moving diagonally into a wall or corner, the colliding axis stops while the perpendicular axis glides freely along the wall face (player never gets stuck).
-  - *Automatic Step-Up Allowance:* Obstacles $\le 0.85\text{ ft}$ (porch plinth, curbs, stairs) step up automatically.
-  - *Collision Boundaries:* Compound boundary walls, gate pillars, house walls, closed doors, large furniture (beds, sofas, kitchen island, car), and tree trunks.
-
-- **Continuous Staircase Flight Climbing:**
-  - Real-time detection when entering a staircase room on Ground Floor (Level 0).
-  - Calculates normalized progression $t \in [0, 1]$ along the stair flight length.
-  - Smoothly elevates player from $Y = 5.5\text{ ft}$ (Level 0 eye-level) to $Y = 15.5\text{ ft}$ (Level 1 eye-level, $10\text{ ft}$ story height) and transitions active floor state seamlessly.
-
-- **Interactive Architectural Elements:**
-  - *Animated Doors & Gates:* Pressing `[E]` or clicking within $5\text{ ft}$ smoothly rotates doors and gates open/closed ($90^\circ$ swing). Dynamically updates collision boxes (can walk freely through open doors; blocked when closed).
-  - *Lighting Toggle:* Pressing `[F]` or clicking the HUD button switches all room ceiling lights and exterior lanterns ON or OFF with immediate visual feedback.
-  - *Furniture Inspection HUD Card:* Aiming at any furniture item within $10\text{ ft}$ triggers a floating HUD card displaying item name, exact dimensions ($W \times L \times H$), material finish, and architectural circulation clearance.
-
-- **4 Architectural Design Concepts:**
-  1. *Contemporary Minimalist:* Clean off-white stucco, slate metal trims, frameless glass, horizontal slat gates, emerald lawn.
-  2. *Warm Modern Japandi:* Warm lime wash, cedar/teak timber battens, warm bronze trim, vertical timber gates, organic biophilic garden.
-  3. *Luxury Mediterranean Villa:* Sun-drenched sandstone cream, terracotta coping, wrought-iron decorative gates, olive-tinted lawn.
-  4. *Industrial Urban Loft:* Charcoal concrete stucco, exposed brick accents, graphite structural steel, perforated steel mesh gates.
-  - Each concept includes architectural trade-offs, advantages, estimated cost multipliers, and maintenance requirements displayed in the 3D Studio Inspector.
-
-- **Preservation of All Studio Features:**
-  - The 7 viewing modes (`all`, `ground`, `first`, `cutaway`, `exploded`, `topdown`, `exterior`), reveal animation sequence, guided walkthrough tour, live 2D-to-3D sync, and statutory architectural disclaimer remain fully operational with zero regressions.
+ArchAI does not generate flat, unmeasurable pictures. **It computes architecture.**
 
 ---
 
-## Project Structure
+## 🌟 Key Capabilities
 
-```text
-innotech/
-├── client/                               # Frontend Application (React + Vite)
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── FloorPlan2D/
-│   │   │   │   ├── Canvas2D.jsx          # Interactive SVG canvas (drag, resize, walls, stairs)
-│   │   │   │   ├── Toolbar2D.jsx         # Floor switcher, zoom, snap, undo/redo, export buttons
-│   │   │   │   ├── PropertiesPanel.jsx   # Selected room inspector & floor metrics
-│   │   │   │   ├── AddRoomModal.jsx      # Modal dialog to add custom or preset rooms
-│   │   │   │   ├── DeleteConfirmModal.jsx# Safe room deletion with confirmation
-│   │   │   │   ├── PrintPreviewModal.jsx # High-contrast print view & room schedule
-│   │   │   │   └── FloorPlan2D.jsx       # Canvas orchestrator & history stack
-│   │   │   └── Viewer3D/
-│   │   │       ├── Canvas3D.jsx          # Three.js WebGL viewport, property site, extruded walls, lights
-│   │   │       ├── Toolbar3D.jsx         # Simulator toggle, concepts, floor modes, camera presets
-│   │   │       └── Viewer3D.jsx          # Simulator orchestrator, HUD overlay & concept tradeoffs card
-│   │   ├── services/
-│   │   │   └── api.js                    # API service for health, parser & layout calls
-│   │   ├── utils/
-│   │   │   ├── canvasMath.js             # Feet/pixel scaling, snapping, AABB overlaps, exports
-│   │   │   ├── threeMath.js              # 2D-to-3D coordinates, floor elevation, walls & stairs
-│   │   │   ├── propertyGenerator.js      # Site compound walls, gates, pillars, landscaping & canopy
-│   │   │   ├── FirstPersonController.js  # WASD, mouse look, wall sliding, stairs climbing & doors
-│   │   │   └── designConcepts.js         # 4 Architectural design concepts & trade-offs
-│   │   ├── App.jsx                       # Interactive Phase 2, 3, 4 & 6 studio
-│   │   ├── index.css                     # Dark theme UI, simulator HUD, crosshair & touch controls
-│   │   └── main.jsx                      # React root mount
-│   ├── index.html
-│   ├── package.json
-│   └── vite.config.js                    # Port 5173 with /api reverse-proxy to port 5000
-│
-├── server/                               # Backend API (Node.js + Express)
-│   ├── src/
-│   │   ├── routes/
-│   │   │   └── api.js                    # Endpoints for parse, generate, validate, recommend
-│   │   ├── schemas/
-│   │   │   └── layoutSchema.js           # Documented JSON schema & standard room dimensions
-│   │   ├── services/
-│   │   │   ├── promptParser.js           # Multilingual (English + Hinglish) NLP parser
-│   │   │   ├── layoutGenerator.js        # Deterministic 2D room coordinate generator
-│   │   │   └── architecturalRules.js     # Overlap detection, boundary checks & Vastu advice
-│   │   ├── app.js                        # Express application with CORS & routes
-│   │   └── index.js                      # Server entry point listening on port 5000
-│   ├── tests/
-│   │   ├── health.test.js                # Server health tests
-│   │   ├── phase2.test.js                # Parser, Hinglish, overlap & impossible layout tests
-│   │   ├── phase3_canvas.test.js         # Canvas math, snapping, drag/resize, history & floors
-│   │   ├── phase4_3d.test.js             # 3D coordinates, elevations, walls, stairs & live updates
-│   │   └── phase6_simulator.test.js      # Property setbacks, AABB collision, wall sliding & stairs
-│   ├── .env.example                      # Environment variables template
-│   ├── .env                              # Local environment config
-│   └── package.json
-│
-├── .gitignore
-├── package.json                          # Workspace helper scripts
-└── README.md                             # Setup, documentation, and API reference
+### 1. 🗣️ Conversational & Hinglish Natural Language Ingestion
+- Extracts intent, room counts, orientations, and custom requirements from formal English or casual Hinglish prompts:
+  - *Example*: `"Mujhe 1200 sq ft me 2 floor ka makan chahiye ground floor pe gaadi parking aur 1st floor pe 2 BHK purab mukhi"`
+  - *Example*: `"Plot: 30 x 40 ft, east facing. Ground floor: one car parking space, staircase, usable enclosed under-stair storage, and a separate enclosed room containing an actual small plunge pool. First floor: exactly two bedrooms, one balcony, and a separate enclosed room containing its own actual small plunge pool."`
+- Universal unit normalizer (`sq yards`, `gaj`, `sq meters`, `feet`).
+- Disambiguates aquatic plunge pools from recreational billiards tables.
+- Transparently distinguishes extracted facts from provisional assumptions and generates clarification questions.
+
+### 2. 📐 Constraint-Aware Topological Layout Solver
+- Uses topological adjacency graphs and functional spatial zoning (Public, Private, Service, Circulation, Outdoor).
+- Enforces municipal setbacks (front, rear, side) leaving a legal, buildable envelope.
+- **Vertical Staircase Stacking**: Ground floor and first floor staircase shafts match identical $(x, y, w, l)$ coordinates.
+- **Ensuite Bathrooms**: Guarantees shared boundary walls with master suites and private access doors.
+- **Infeasibility Detection**: Mathematically verifies if requested program exceeds plot capacity and rejects impossible requests with explicit deficit metrics.
+
+### 3. 🛡️ Geometric Verification & Zero Overlaps
+- Statutory compliance engine using **Separating Axis Theorem (SAT)** and **2D AABB collision detection**.
+- **Mathematically guaranteed 0 geometric room overlaps** on every level.
+- Mandatory room inventory preservation: explicitly requested rooms (parking, under-stair storage, plunge pools) are never dropped.
+
+### 4. 🎮 Dual Synchronized Studio & 3D Three.js WebGL Engine
+- **2D Blueprint CAD Editor**: Millimeter-precise scale, wall thicknesses, door swings, window cutouts, collision snapping ($0.5\text{ ft} / 1.0\text{ ft}$), and undo/redo history.
+- **3D House Viewer**: Procedural Three.js geometry with real wall thickness, glass windows, stepped stairs, animated water-shader plunge pools, and contextual 3D furniture.
+- **Exploded Multi-Floor Slider**: Vertically elevates upper floors on an accordion slider to inspect ground and first floor layouts simultaneously.
+- **First-Person Walkthrough Simulator**: WASD + mouse camera controls with smooth wall-sliding collision detection, automatic step-up allowance, door opening interactions (`[E]`), and light toggles (`[F]`).
+
+### 5. 💰 Measurable BOQ & Quantity Takeoff Engine
+- Computes an itemized 10-category Bill of Quantities using measurable quantities extracted directly from CAD geometry:
+  - **Net Masonry**: Gross wall surface area minus door and window openings.
+  - **Concrete Volumes**: RCC M25 pad footings, columns, and $125\text{mm}$ suspended floor/terrace slabs.
+  - **Flooring Finishes by Room**: Double-charged vitrified tiles, anti-skid bathroom tiles, heavy-duty parking pavers, glass mosaic plunge pool tiles.
+  - **MEP Points**: CPVC supply, $110\text{mm}$ SWR drainage pipes, sanitary suites, light and 16A power points.
+  - **Plunge Pool MEP**: Sunken RCC basin shell, crystalline waterproofing, mosaic tiling, filtration pump equipment.
+  - **Indirect Works**: Contractor overheads ($10\%$), contingency ($3\%$), and statutory tax/GST ($18\%$).
+- Multi-Currency (INR ₹, USD $, EUR €, GBP £, AED) and Quality Tiers (Economy $0.78\times$, Standard $1.0\times$, Premium $1.38\times$).
+- Inline editable unit rates with real-time recalculation, CSV spreadsheet export, and detailed JSON export.
+
+### 6. ⚖️ Budget-Aware Multi-Option Design Optimization
+- Automatically synthesizes and compares **3 distinct layout alternatives** for the same plot and prompt:
+  1. **Option A: Value-Engineered (Lowest Cost)**: Aligns vertical plumbing stacks, standardizes spans, reduces custom lintel cutting.
+  2. **Option B: Space Maximizer (Highest Carpet Area)**: Trims circulation corridors to deliver maximum usable bedroom and living lounge carpet area ($87\%$ carpet efficiency).
+  3. **Option C: Balanced Living & Daylight (Recommended)**: Optimal balance of natural daylight, cross-ventilation, and functional flow.
+- **100% Mandatory Room Preservation**: Every alternative strictly satisfies all requested rooms.
+- **One-Click Active Switching**: Clicking *"Switch Active Design to This Option"* dynamically updates the active design in the 2D CAD blueprint, 3D viewer, and walkthrough in real time.
+
+### 7. ☀️ Climate Intelligence & Structural Buildability Analyzer
+- **Orientation & Daylighting**: Identifies East morning sun access ($76/100$) vs West afternoon thermal shielding.
+- **Cross-Ventilation**: Evaluates dual-aspect exterior wall exposures across all habitable rooms.
+- **Vertical Plumbing Stack Alignment**: Computes horizontal distance between upper-floor wet areas and ground drainage lines ($98/100$ alignment score with $0.5\text{ ft}$ offset).
+- **Elevated Plunge Pool Structural Advisory**: Calculates water mass live load ($\approx 3.8\text{ metric tons}$) $+$ concrete basin dead load ($\approx 5.5\text{ metric tons}$ total load, $\approx 260\text{ lbs/sq ft}$ vs standard residential $40\text{ lbs/sq ft}$), mandating a $200\text{mm}$ sunken drop panel, direct column load transfer to footings, and dual-layer crystalline waterproofing with a 72-hour flood test.
+
+---
+
+## 📸 Screenshots
+
+| 3-Option Design Alternatives | Detailed Interactive BOQ Table | Climate & Buildability Studio |
+| :---: | :---: | :---: |
+| ![3 Alternatives](docs/screenshots/cost_alternatives_view.jpg) | ![Detailed BOQ](docs/screenshots/cost_boq_table.jpg) | ![Climate & Spans](docs/screenshots/cost_climate_spans.jpg) |
+
+---
+
+## 🏗️ System Architecture
+
+```mermaid
+flowchart TD
+    UserPrompt["Natural Language Prompt / Hinglish Brief"] --> NLP["promptParser.js (Entity Extraction & Normalization)"]
+    NLP --> Solver["topologicalLayoutSolver.js (Zoning & Topological Solver)"]
+    Solver --> Validator["architecturalRules.js (SAT & AABB Zero-Overlap Validation)"]
+    Validator --> OpenPlanCAD["Canonical OpenPlan3D Geometry Model"]
+
+    subgraph Studio["Synchronized Visualization Studio"]
+        OpenPlanCAD --> Canvas2D["2D Architectural Blueprint CAD"]
+        OpenPlanCAD --> ThreeViewer["3D Three.js WebGL House Viewer"]
+        OpenPlanCAD --> FPS["First-Person Architectural Simulator"]
+    end
+
+    subgraph Intelligence["Commercial & Engineering Intelligence"]
+        OpenPlanCAD --> BOQ["boqEngine.js (Measurable Takeoff & CPWD DSR Rates)"]
+        OpenPlanCAD --> Climate["buildabilityAnalyzer.js (Sun Path, Stack Align, 3.8T Pool Load)"]
+        BOQ & Climate --> Optimizer["designOptimizer.js (3 Feasible Layout Alternatives)"]
+    end
+
+    Optimizer --> UI["FleetEdge React Workspace (Active Layout Switching)"]
 ```
 
 ---
 
-## Quick Start (Windows PowerShell)
+## 🧪 Automated Test Suite (122 / 122 Tests Passing)
 
-> **Note for Windows PowerShell users:** If script execution is restricted on your system, execute commands using `npm.cmd`.
+The entire pipeline is verified by **122 automated unit and integration tests**:
 
-### Step 1: Install Dependencies
-```powershell
-# In innotech/server
+```bash
+# Run backend test suite
 cd server
-npm.cmd install
-cd ..
-
-# In innotech/client
-cd client
-npm.cmd install
-cd ..
+npm test
 ```
 
-### Step 2: Start the Backend Server
-```powershell
+Test coverage includes:
+- `cost_optimizer.test.js`: BOQ quantity takeoff, multi-currency scaling, 3 layout alternatives, elevated plunge pool water load math ($\approx 3.8\text{T}$).
+- `topological_solver.test.js`: Kitchen placement, ensuite bath adjacency, entrance orientation, stair stacking, zero overlaps, infeasibility rejection.
+- `phase3_canvas.test.js`: 2D coordinate conversion, snapping, dragging, boundary clamping.
+- `phase4_3d.test.js`: Three.js procedural wall extrusions, door cutouts, staircase steps, furniture placement.
+- `phase6_simulator.test.js`: FPS movement, wall sliding, auto step-up, door interaction (`[E]`), lighting (`[F]`).
+- `teammate_backend_spec.test.js`: Hinglish parsing, unit conversion, 7 design modification operations, RESTful endpoints.
+
+---
+
+## 🚀 Quick Start Guide
+
+### Prerequisites
+- Node.js (v18 or higher)
+- npm or yarn
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/avantikarathi01/archai.git
+cd archai
+```
+
+### 2. Backend Setup
+```bash
 cd server
-npm.cmd run dev
-```
-* **Server URL:** `http://localhost:5000`
-
-### Step 3: Start the Frontend Client
-```powershell
-cd client
-npm.cmd run dev
-```
-* **Client App:** `http://localhost:5173`
-
-### Step 4: Run Automated Tests
-```powershell
-cd server
-npm.cmd test
-```
-* Runs **48 automated unit & integration tests** across `health.test.js`, `phase2.test.js`, `phase3_canvas.test.js`, `phase4_3d.test.js`, and `phase6_simulator.test.js` covering English/Hinglish parsing, boundary checks, AABB overlap detection, coordinate conversions, grid snapping, drag/resize editing, history undo/redo transitions, floor switching, 3D coordinate centering, floor elevations, wall extrusions, 3D stair generation, real-time layout updates, schematic furniture generation, smart anti-overlap label scaling, dynamic camera auto-framing, deterministic reveal sequence states, walkthrough tour waypoints at 5.5 ft eye-level, 5 cinematic lighting presets, 4 architectural material finish styles, 3 quality performance presets, the 7 architectural viewing modes, walkthrough camera distance safety, property site setbacks, gate and pillar placement, outside spawn safety, 3D AABB collision detection, axis-separated wall sliding math, dynamic door collision toggling, continuous stair climbing progression, and the 4 architectural design concepts with trade-offs.
-
----
-
-## Phase 2 API Reference
-
-### 1. `POST /api/parse-requirements`
-Parses freeform English or Hinglish text into structured architectural constraints.
-
-#### Request Example:
-```powershell
-Invoke-RestMethod -Uri http://localhost:5000/api/parse-requirements -Method POST `
-  -Headers @{ "Content-Type" = "application/json" } `
-  -Body '{"prompt": "3 BHK east facing on 30x40 ft plot with car parking, open kitchen and pooja room"}'
+npm install
+npm start
+# Server runs on http://localhost:5000
 ```
 
-#### Response Example:
-```json
-{
-  "status": "success",
-  "rawPrompt": "3 BHK east facing on 30x40 ft plot with car parking, open kitchen and pooja room",
-  "requirements": {
-    "plot": {
-      "width": 30,
-      "length": 40,
-      "totalAreaSqFt": 1200,
-      "unit": "ft"
-    },
-    "floors": 1,
-    "bedrooms": 3,
-    "bathrooms": 2,
-    "kitchen": {
-      "type": "open",
-      "modular": false
-    },
-    "parking": {
-      "required": true,
-      "type": "car",
-      "capacity": 1
-    },
-    "poojaRoom": true,
-    "facing": "east",
-    "budget": {
-      "tier": "standard"
-    },
-    "clarifications": []
-  }
-}
+### 3. Frontend Setup
+```bash
+cd ../client
+npm install
+npm run dev
+# Vite client runs on http://localhost:5173
 ```
 
 ---
 
-### 2. `POST /api/generate-design`
-Generates a complete 2D room layout with exact coordinates, doors, windows, and geometry validation.
+## 🛠️ Tech Stack
 
-#### Request Example:
-```powershell
-Invoke-RestMethod -Uri http://localhost:5000/api/generate-design -Method POST `
-  -Headers @{ "Content-Type" = "application/json" } `
-  -Body '{"prompt": "2 BHK east facing on 30x40 plot with car parking"}'
-```
-
-#### Response Example (Truncated):
-```json
-{
-  "status": "success",
-  "layout": {
-    "id": "archai-plan-1729416000000",
-    "metadata": {
-      "title": "2 BHK EAST-Facing Residential Design",
-      "facing": "east",
-      "floorsCount": 1,
-      "unit": "ft"
-    },
-    "plot": {
-      "width": 30,
-      "length": 40,
-      "totalAreaSqFt": 1200
-    },
-    "rooms": [
-      {
-        "id": "room-1",
-        "type": "parking",
-        "name": "Car Porch / Parking",
-        "level": 0,
-        "x": 0,
-        "y": 3,
-        "width": 11,
-        "length": 12,
-        "area": 132,
-        "zone": "outdoor"
-      },
-      {
-        "id": "room-2",
-        "type": "living_room",
-        "name": "Living Room / Drawing Hall",
-        "level": 0,
-        "x": 11,
-        "y": 3,
-        "width": 19,
-        "length": 12,
-        "area": 228,
-        "zone": "public"
-      }
-    ],
-    "summary": {
-      "totalBuiltUpAreaSqFt": 768,
-      "totalCarpetAreaSqFt": 630,
-      "groundCoveragePercent": 64
-    },
-    "validation": {
-      "isValid": true,
-      "errors": [],
-      "warnings": []
-    }
-  },
-  "disclaimer": "DISCLAIMER: ArchAI plans are conceptual architectural layouts for planning and design exploration..."
-}
-```
+- **Frontend**: React 18, Vite, Three.js, GSAP Animations, Lucide Icons
+- **Backend**: Node.js, Express, ES Modules
+- **Geometry & Math**: Computational 2D AABB, Separating Axis Theorem (SAT), Spatial Adjacency Graphs
+- **Cost & Estimating**: Indian CPWD DSR 2024 Schedule Mapping, Real Geometry Takeoff
+- **Tests**: Native Node.js Test Runner (`node:test`, `node:assert`)
 
 ---
 
-### 3. `POST /api/validate-design`
-Checks a layout for room overlaps, boundary infractions, and minimum room sizes.
+## ⚖️ Legal & Engineering Disclaimer
 
-#### Request Example:
-```powershell
-Invoke-RestMethod -Uri http://localhost:5000/api/validate-design -Method POST `
-  -Headers @{ "Content-Type" = "application/json" } `
-  -Body '{ "layout": { "plot": {"width": 30, "length": 40}, "rooms": [...] } }'
-```
-
----
-
-### 4. `POST /api/recommendations`
-Returns architectural and Vastu suggestions for room placement, cross-ventilation, and privacy.
-
----
-
-## How to Test in the Running Application
-
-1. Open `http://localhost:5173` in your browser.
-2. In the **Multilingual Requirement Parser & Layout Generator** studio:
-   * Click **"3 BHK Modern (English)"** or **"2 BHK Do Manzil (Hinglish)"** from the sample chips.
-   * Click **"Generate 2D Floor Plan"** to see extracted parameters, room coordinates, area totals, and Vastu insights.
-   * Click the **"Rooms"**, **"Validation & Advice"**, or **"Schema JSON"** tabs to inspect the generated geometry.
-   * Click **"Missing Dimensions (Test Clarification)"** to observe the clarification questions engine in action.
-   * Click **"Impossible Layout (Test Error)"** to verify impossible layout detection (e.g., trying to fit 5 bedrooms on a 150 sq ft plot).
-
----
-
-## Disclaimers & Known Limitations
-
-> [!IMPORTANT]
-> **Engineering Disclaimer:** Floor plans generated by ArchAI are **conceptual architectural layouts** intended for initial space planning, requirement visualization, and design exploration. They do not claim structural safety compliance, seismic load suitability, or local municipal building bye-law certification. A licensed architect and structural engineer must review and approve all structural drawings before excavation or construction.
-
-### Current Engine Limitations:
-1. **Plot Shapes:** The current procedural engine is optimized for rectangular and square urban plots. Irregular polygons and cul-de-sac plots will be addressed in future versions.
-2. **Multi-Storey Stairwells:** In G+1 designs, circulation passages represent vertical access zones; explicit 3D stair flight geometry will be detailed in Phase 4.
+Calculations, bill of quantities, structural load approximations, and climate orientations are preliminary engineering heuristics for concept design and optimization. They do not substitute for stamped working drawings or tender documents from a certified civil/structural engineer, quantity surveyor (QS), or licensed architect.
