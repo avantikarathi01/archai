@@ -295,4 +295,77 @@ describe('ArchAI Phase 1: Topological Solver Verification', () => {
     assert.ok(topoResult.topologicalValidation.isValid, 'Topological layout must be topologically valid');
   });
 
+  // ---------------------------------------------------------------------------
+  // 11. Diagnostic Regression: Custom Multi-Floor with Under-Stair Storage & Plunge Pools
+  // ---------------------------------------------------------------------------
+  it('11. Diagnostic Regression: exactly generates requested storage, aquatic plunge pools, and floor inventory', async () => {
+    const prompt = 'Plot: 30 × 40 ft. Ground floor: one car parking space, staircase, usable enclosed under-stair storage, and a separate enclosed room containing an actual small plunge pool. First floor: exactly two bedrooms, one balcony, and a separate enclosed room containing its own actual small plunge pool.';
+
+    const result = await designService.generateDesign({
+      prompt,
+      options: { engine: 'topological' },
+    });
+
+    assert.equal(result.status, 'success', 'Request must succeed');
+    assert.equal(result.engine, 'topological_solver_v1', 'Engine must be topological');
+
+    const layout = result.layout;
+    const reqs = result.requirements;
+
+    // 1. Plot Dimensions
+    assert.equal(reqs.plot.width, 30, 'Plot width must be 30 ft');
+    assert.equal(reqs.plot.length, 40, 'Plot length must be 40 ft');
+    assert.equal(reqs.plot.isDimensionsExplicit, true, 'Unicode × must produce confirmed explicit plot dimensions');
+    assert.equal(layout.status, 'confirmed', 'Layout status must be confirmed, not provisional');
+
+    // 2. Ground Floor Verification
+    const gfRooms = layout.rooms.filter(r => r.level === 0);
+
+    const gfParking = gfRooms.find(r => r.type === 'parking');
+    assert.ok(gfParking, 'Ground floor must contain parking');
+    assert.ok(gfParking.width >= 9.5 && gfParking.length >= 15.0, 'Parking must accommodate car standard dimensions');
+
+    const gfStair = gfRooms.find(r => r.type === 'staircase');
+    assert.ok(gfStair, 'Ground floor must contain staircase');
+
+    const gfStorage = gfRooms.find(r => r.type === 'storage');
+    assert.ok(gfStorage, 'Ground floor must contain enclosed under-stair storage');
+    assert.ok(gfStorage.area >= 15.0, `Storage area must be >= 15 sq ft, got ${gfStorage.area}`);
+    assert.ok(gfStorage.doors && gfStorage.doors.length >= 1, 'Storage must have an access door');
+
+    const gfPool = gfRooms.find(r => r.type === 'plunge_pool');
+    assert.ok(gfPool, 'Ground floor must contain separate enclosed plunge pool room');
+    assert.ok(gfPool.basin, 'Plunge pool room must have basin geometry specifications');
+    assert.ok(gfPool.basin.depth >= 3.0, 'Pool basin depth must be >= 3 ft');
+    assert.ok(gfPool.doors && gfPool.doors.length >= 1, 'Plunge pool room must have an enclosed entrance door');
+    assert.ok(gfPool.windows && gfPool.windows.length >= 1, 'Plunge pool room must have a ventilation window');
+
+    // 3. First Floor Verification
+    const ffRooms = layout.rooms.filter(r => r.level === 1);
+
+    const ffBedrooms = ffRooms.filter(r => r.type === 'bedroom' || r.type === 'master_bedroom');
+    assert.equal(ffBedrooms.length, 2, `First floor must contain exactly 2 bedrooms, got ${ffBedrooms.length}`);
+
+    const ffBalcony = ffRooms.find(r => r.type === 'balcony');
+    assert.ok(ffBalcony, 'First floor must contain one balcony');
+
+    const ffPool = ffRooms.find(r => r.type === 'plunge_pool');
+    assert.ok(ffPool, 'First floor must contain separate enclosed plunge pool room');
+    assert.ok(ffPool.basin, 'First floor plunge pool must have its own basin');
+
+    // 4. Vertical Staircase Stacking
+    const ffStair = ffRooms.find(r => r.type === 'staircase');
+    assert.ok(ffStair, 'First floor must contain staircase landing');
+    assert.equal(gfStair.x, ffStair.x, 'Staircase X coordinate must stack identically');
+    assert.equal(gfStair.y, ffStair.y, 'Staircase Y coordinate must stack identically');
+
+    // 5. Validation Integrity
+    assert.equal(result.validation.isValid, true, `Validation must pass with 0 errors: ${JSON.stringify(result.validation.errors)}`);
+    assert.equal(result.validation.errors.length, 0, 'Must have zero validation errors');
+
+    // 6. Structural advisory emitted for elevated plunge pool
+    const hasStructuralWarning = result.warnings.some(w => /structural.*plunge pool/i.test(typeof w === 'string' ? w : w.message));
+    assert.ok(hasStructuralWarning, 'Structural advisory warning must be present for first-floor elevated plunge pool');
+  });
+
 });

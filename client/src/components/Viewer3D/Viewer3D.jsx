@@ -19,7 +19,11 @@ import {
   ChevronUp,
   ChevronDown,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Eye,
+  RotateCcw,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import {
   generateWalkthroughWaypoints,
@@ -329,9 +333,10 @@ export default function Viewer3D({
       {/* Main 3D Viewport & Sidebar Split */}
       <div className="canvas-workspace viewer-3d-workspace">
         <div className="canvas-wrapper" style={{ position: 'relative' }}>
-          <Canvas3D
-            rooms={rooms}
-            plot={plot}
+          <div className="viewport-shell" style={{ position: 'relative', width: '100%', height: isFullscreen3D ? '100%' : '640px', borderRadius: '8px', overflow: 'hidden' }}>
+            <Canvas3D
+              rooms={rooms}
+              plot={plot}
             facing={facing}
             floorMode={floorMode}
             explodedGap={explodedGap}
@@ -538,6 +543,125 @@ export default function Viewer3D({
               </div>
             </div>
           )}
+
+          {/* FleetEdge-Inspired Floating Glassmorphic Viewport Dock */}
+          {!isSimulator && (
+            <div className="control-bar-shell">
+              <nav className="control-bar" aria-label="3D Studio Viewport Controls">
+                <button
+                  type="button"
+                  className="primary-control"
+                  onClick={handleToggleSimulator}
+                  title="Enter interactive first-person walkthrough from front entrance"
+                >
+                  <Footprints size={14} />
+                  <span>ENTER HOUSE</span>
+                </button>
+
+                <div className="control-bar-divider" />
+
+                <button
+                  type="button"
+                  className={floorMode === 'all' ? 'active-control' : ''}
+                  onClick={() => handleFloorModeChange('all')}
+                  title="Full House with all stories assembled"
+                >
+                  <span>FULL HOUSE</span>
+                </button>
+                <button
+                  type="button"
+                  className={floorMode === 'ground' ? 'active-control' : ''}
+                  onClick={() => handleFloorModeChange('ground')}
+                  title="Isolate Ground Floor (L0)"
+                >
+                  <span>GROUND (L0)</span>
+                </button>
+                {floors.includes(1) && (
+                  <button
+                    type="button"
+                    className={floorMode === 'first' ? 'active-control' : ''}
+                    onClick={() => handleFloorModeChange('first')}
+                    title="Isolate First Floor (L1)"
+                  >
+                    <span>FIRST (L1)</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className={floorMode === 'cutaway' ? 'active-control' : ''}
+                  onClick={() => handleFloorModeChange('cutaway')}
+                  title="Architectural cutaway view"
+                >
+                  <span>CUTAWAY</span>
+                </button>
+
+                <div className="control-bar-divider" />
+
+                <button
+                  type="button"
+                  className={cameraPreset === 'iso' ? 'active-control' : ''}
+                  onClick={() => handleSelectCameraPreset('iso')}
+                  title="Isometric 3D Camera"
+                >
+                  <span>ISO</span>
+                </button>
+                <button
+                  type="button"
+                  className={cameraPreset === 'top' ? 'active-control' : ''}
+                  onClick={() => handleSelectCameraPreset('top')}
+                  title="Top-Down Plan Camera"
+                >
+                  <span>TOP</span>
+                </button>
+                <button
+                  type="button"
+                  className={cameraPreset === 'front' ? 'active-control' : ''}
+                  onClick={() => handleSelectCameraPreset('front')}
+                  title="Front Facade Elevation"
+                >
+                  <span>FRONT</span>
+                </button>
+                <button
+                  type="button"
+                  className={cameraPreset === 'frame' ? 'active-control' : ''}
+                  onClick={() => handleSelectCameraPreset('frame')}
+                  title="Fit Entire Property"
+                >
+                  <RotateCcw size={12} />
+                  <span>FIT</span>
+                </button>
+
+                <div className="control-bar-divider" />
+
+                <button
+                  type="button"
+                  className={showFurniture ? 'active-control' : ''}
+                  onClick={() => setShowFurniture(prev => !prev)}
+                  title="Toggle Architectural Furniture"
+                >
+                  <Armchair size={13} />
+                  <span>{showFurniture ? 'FURNISHED' : 'EMPTY'}</span>
+                </button>
+                <button
+                  type="button"
+                  className={showLabels ? 'active-control' : ''}
+                  onClick={() => setShowLabels(prev => !prev)}
+                  title="Toggle 3D Floating Room Badges"
+                >
+                  <Eye size={13} />
+                  <span>{showLabels ? 'LABELS' : 'OFF'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={toggleFullscreen3D}
+                  title={isFullscreen3D ? "Exit Fullscreen" : "Fullscreen 3D Studio"}
+                >
+                  {isFullscreen3D ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+                </button>
+              </nav>
+            </div>
+          )}
+          </div>
 
           {/* Quick status bar below 3D viewport */}
           <div className="canvas-status-bar">

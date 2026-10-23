@@ -218,12 +218,12 @@ export default function Canvas3D({
 
     // A. Scene setup
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x070b13);
+    scene.background = new THREE.Color(0x0a0d12);
     sceneRef.current = scene;
 
-    // B. Camera
+    // B. Camera with refined 38° architectural field-of-view
     const camera = new THREE.PerspectiveCamera(
-      42,
+      38,
       container.clientWidth / container.clientHeight,
       0.1,
       800
@@ -257,11 +257,15 @@ export default function Canvas3D({
     controls.maxDistance = 250;
     controlsRef.current = controls;
 
-    // Initial camera placement
+    // Initial camera placement with cinematic crane entrance sweep
     const { position, target } = calculateOptimalCameraPosition(plotWidth, plotLength, floorMode, explodedGap, cameraPreset);
-    camera.position.set(position.x, position.y, position.z);
-    controls.target.set(target.x, target.y, target.z);
+    camera.position.set(position.x * 1.35, position.y * 1.55, position.z * 1.35);
+    controls.target.set(target.x, target.y + 3, target.z);
     controls.update();
+
+    // Smoothly glide into optimal beauty angle
+    targetCameraPosRef.current = new THREE.Vector3(position.x, position.y, position.z);
+    targetLookAtRef.current = new THREE.Vector3(target.x, target.y, target.z);
 
     // E. Lighting System
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
@@ -1516,12 +1520,13 @@ export default function Canvas3D({
       className="canvas-3d-viewport"
       style={{
         width: '100%',
-        height: '660px',
+        height: '100%',
+        minHeight: '540px',
         position: 'relative',
-        borderRadius: '12px',
+        borderRadius: '8px',
         overflow: 'hidden',
         border: '1px solid var(--border-color)',
-        backgroundColor: '#070b13'
+        backgroundColor: '#0a0d12'
       }}
     />
   );

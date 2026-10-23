@@ -59,6 +59,8 @@ export const ROOM_STANDARDS = {
   balcony: { minWidth: 3.5, minArea: 21, maxAspectRatio: 3.0, zone: ARCHITECTURAL_ZONES.OUTDOOR },
   foyer: { minWidth: 4.5, minArea: 25, maxAspectRatio: 2.0, zone: ARCHITECTURAL_ZONES.CIRCULATION },
   corridor: { minWidth: 3.0, minArea: 20, maxAspectRatio: 4.0, zone: ARCHITECTURAL_ZONES.CIRCULATION },
+  plunge_pool: { minWidth: 6.0, minArea: 40, maxAspectRatio: 2.2, zone: ARCHITECTURAL_ZONES.SERVICE, requiresExteriorWall: true },
+  storage: { minWidth: 3.0, minArea: 15, maxAspectRatio: 3.0, zone: ARCHITECTURAL_ZONES.SERVICE },
 };
 
 /**

@@ -617,9 +617,30 @@ export function generateTopologicalLayout(requirements) {
       const stairL_actual = Math.min(10.0, Math.round(rearL * 0.45));
       const mid2L = rearL - stairL_actual;
 
+      const gfReq = requirements?.floorRequirements?.[0] || {};
+      const ffReq = requirements?.floorRequirements?.[1] || {};
+
+      const hasGfStorage = Boolean(gfReq.underStairStorage || requirements?.underStairStorage?.required);
+      const hasGfPlungePool = Boolean(gfReq.plungePool || (requirements?.plungePool?.required && !ffReq.plungePool));
+      const hasFfPlungePool = Boolean(ffReq.plungePool || (requirements?.plungePool?.required && floorsCount > 1));
+      const reqFfBeds = typeof ffReq.bedrooms === 'number' && ffReq.bedrooms > 0 ? ffReq.bedrooms : Math.max(1, totalBedrooms - 1);
+
+      // Dedicated stair flight width (if storage is requested under/beside stairs)
+      const stairW = hasGfStorage ? Math.max(6.5, Math.round(leftW * 0.65)) : leftW;
+      const storageW = leftW - stairW;
+
+      if (hasFfPlungePool && lvl === 1) {
+        warnings.push(
+          'STRUCTURAL & WATERPROOFING ADVISORY: First-floor plunge pool imposes substantial live and dead loads (~62.4 lbs/cu ft of water) requiring reinforced concrete slab design, structural column load transfers, and dual-layer waterproof membrane containment. Consult a certified structural engineer.'
+        );
+      }
+
       if (lvl === 0) {
         // LEVEL 0: GROUND FLOOR
         // Front Zone:
+        const driveDoorW = Math.min(8.5, parkW - 1.0);
+        const driveDoorOffset = Math.max(0.5, Math.round(((parkW - driveDoorW) / 2) * 10) / 10);
+
         rooms.push({
           id: `room-${roomId++}`,
           type: 'parking',
@@ -632,9 +653,12 @@ export function generateTopologicalLayout(requirements) {
           area: parkW * parkL,
           zone: ARCHITECTURAL_ZONES.OUTDOOR,
           color: '#10b981',
-          doors: [{ wall: 'north', offset: parkW / 2, width: 8.5, label: 'Driveway Entry' }],
+          doors: [{ wall: 'north', offset: driveDoorOffset, width: driveDoorW, label: 'Driveway Entry' }],
           windows: [],
         });
+
+        const foyerDoorW = 3.5;
+        const foyerDoorOffset = Math.max(0.5, Math.round(((rightW - foyerDoorW) / 2) * 10) / 10);
 
         rooms.push({
           id: `room-${roomId++}`,
@@ -649,14 +673,13 @@ export function generateTopologicalLayout(requirements) {
           zone: ARCHITECTURAL_ZONES.CIRCULATION,
           color: '#64748b',
           doors: [
-            { wall: 'front', offset: rightW / 2, width: 3.5, label: 'Main Entrance Door' },
-            { wall: 'south', offset: rightW / 2, width: 3.2, label: 'To Living Lounge' }
+            { wall: 'front', offset: foyerDoorOffset, width: foyerDoorW, label: 'Main Entrance Door' },
+            { wall: 'south', offset: foyerDoorOffset, width: 3.2, label: 'To Living Lounge' }
           ],
           windows: [],
         });
 
-        // Middle/Rear Zone:
-        // Left Column: Staircase (top) + Dining (bottom)
+        // Middle Zone: Left Column -> Staircase (+ Under-Stair Storage if requested)
         rooms.push({
           id: `room-${roomId++}`,
           type: 'staircase',
@@ -664,30 +687,76 @@ export function generateTopologicalLayout(requirements) {
           level: 0,
           x: X0,
           y: rearY,
-          width: leftW,
+          width: stairW,
           length: stairL_actual,
-          area: leftW * stairL_actual,
+          area: stairW * stairL_actual,
           zone: ARCHITECTURAL_ZONES.CIRCULATION,
           color: '#64748b',
-          doors: [{ wall: 'east', offset: stairL_actual / 2, width: 3.0, label: 'Stair Access' }],
-          windows: [{ wall: 'west', offset: stairL_actual / 2, width: 2.5 }],
+          doors: [{ wall: 'east', offset: Math.max(0.5, Math.round((stairL_actual / 2 - 1.5) * 10) / 10), width: 3.0, label: 'Stair Access' }],
+          windows: [{ wall: 'west', offset: Math.max(0.5, Math.round((stairL_actual / 2 - 1.25) * 10) / 10), width: 2.5 }],
         });
 
-        rooms.push({
-          id: `room-${roomId++}`,
-          type: 'dining',
-          name: 'Dining Room',
-          level: 0,
-          x: X0,
-          y: rearY + stairL_actual,
-          width: leftW,
-          length: mid2L,
-          area: leftW * mid2L,
-          zone: ARCHITECTURAL_ZONES.PUBLIC,
-          color: '#38bdf8',
-          doors: [{ wall: 'east', offset: mid2L / 2, width: 3.0, label: 'To Kitchen' }],
-          windows: [{ wall: 'west', offset: mid2L / 2, width: 3.5 }],
-        });
+        if (hasGfStorage) {
+          rooms.push({
+            id: `room-${roomId++}`,
+            type: 'storage',
+            name: 'Enclosed Under-Stair Storage',
+            level: 0,
+            x: X0 + stairW,
+            y: rearY,
+            width: storageW,
+            length: stairL_actual,
+            area: storageW * stairL_actual,
+            zone: ARCHITECTURAL_ZONES.SERVICE,
+            color: '#64748b',
+            doors: [{ wall: 'east', offset: Math.max(0.5, Math.round((stairL_actual / 2 - 1.2) * 10) / 10), width: 2.4, label: 'Storage Door' }],
+            windows: [],
+          });
+        }
+
+        // Rear Zone: Left Column -> Ground Floor Plunge Pool Room or Dining Room
+        if (hasGfPlungePool) {
+          const poolBasinW = Math.max(4.0, Math.round((leftW - 3.0) * 10) / 10);
+          const poolBasinL = Math.max(5.0, Math.round((mid2L - 3.0) * 10) / 10);
+
+          rooms.push({
+            id: `room-${roomId++}`,
+            type: 'plunge_pool',
+            name: 'Ground Floor Plunge Pool Room',
+            level: 0,
+            x: X0,
+            y: rearY + stairL_actual,
+            width: leftW,
+            length: mid2L,
+            area: leftW * mid2L,
+            zone: ARCHITECTURAL_ZONES.SERVICE,
+            color: '#06b6d4',
+            basin: {
+              width: poolBasinW,
+              length: poolBasinL,
+              depth: 4.0,
+              waterColor: '#06b6d4',
+            },
+            doors: [{ wall: 'east', offset: Math.max(0.5, Math.round((mid2L / 2 - 1.5) * 10) / 10), width: 3.0, label: 'Pool Room Door' }],
+            windows: [{ wall: 'west', offset: Math.max(0.5, Math.round((mid2L / 2 - 2.0) * 10) / 10), width: 4.0, label: 'Pool Ventilation' }],
+          });
+        } else {
+          rooms.push({
+            id: `room-${roomId++}`,
+            type: 'dining',
+            name: 'Dining Room',
+            level: 0,
+            x: X0,
+            y: rearY + stairL_actual,
+            width: leftW,
+            length: mid2L,
+            area: leftW * mid2L,
+            zone: ARCHITECTURAL_ZONES.PUBLIC,
+            color: '#38bdf8',
+            doors: [{ wall: 'east', offset: Math.max(0.5, Math.round((mid2L / 2 - 1.5) * 10) / 10), width: 3.0, label: 'To Kitchen' }],
+            windows: [{ wall: 'west', offset: Math.max(0.5, Math.round((mid2L / 2 - 1.75) * 10) / 10), width: 3.5 }],
+          });
+        }
 
         // Right Column: Living Lounge (top) + Kitchen (bottom)
         const kitchenL = Math.max(7.0, Math.min(10.0, Math.round(rearL * 0.42)));
@@ -706,7 +775,7 @@ export function generateTopologicalLayout(requirements) {
           zone: ARCHITECTURAL_ZONES.PUBLIC,
           color: '#38bdf8',
           doors: [{ wall: 'north', offset: 2.0, width: 3.2, label: 'From Foyer' }],
-          windows: [{ wall: 'east', offset: livingL / 2, width: 4.5, label: 'Lounge Window' }],
+          windows: [{ wall: 'east', offset: Math.max(0.5, Math.round((livingL / 2 - 2.25) * 10) / 10), width: 4.5, label: 'Lounge Window' }],
         });
 
         rooms.push({
@@ -723,14 +792,14 @@ export function generateTopologicalLayout(requirements) {
           color: '#fb923c',
           kitchenType,
           doors: [{ wall: 'west', offset: 2.0, width: 3.0, label: 'Kitchen Door' }],
-          windows: [{ wall: 'south', offset: rightW / 2, width: 3.5, label: 'Exhaust & Daylight' }],
+          windows: [{ wall: 'south', offset: Math.max(0.5, Math.round((rightW / 2 - 1.75) * 10) / 10), width: 3.5, label: 'Exhaust & Daylight' }],
         });
 
       } else {
         // LEVEL 1: FIRST FLOOR
-        // Front Zone: Balcony (Left) + Family Lounge (Right)
         const balcL = Math.min(6.0, parkL);
 
+        // Front Left: Balcony (+ Bedroom 2 if 2+ bedrooms requested)
         rooms.push({
           id: `room-${roomId++}`,
           type: 'balcony',
@@ -743,28 +812,65 @@ export function generateTopologicalLayout(requirements) {
           area: leftW * balcL,
           zone: ARCHITECTURAL_ZONES.OUTDOOR,
           color: '#34d399',
-          doors: [{ wall: 'east', offset: balcL / 2, width: 3.0, label: 'Glass Sliding Door' }],
+          doors: [{ wall: 'east', offset: Math.max(0.5, Math.round((balcL / 2 - 1.5) * 10) / 10), width: 3.0, label: 'Glass Sliding Door' }],
           windows: [],
         });
 
-        rooms.push({
-          id: `room-${roomId++}`,
-          type: 'living_room',
-          name: 'Family Lounge & Study',
-          level: 1,
-          x: X0 + leftW,
-          y: Y0,
-          width: rightW,
-          length: parkL,
-          area: rightW * parkL,
-          zone: ARCHITECTURAL_ZONES.PUBLIC,
-          color: '#38bdf8',
-          doors: [{ wall: 'south', offset: rightW / 2, width: 3.0, label: 'Hallway Entry' }],
-          windows: [{ wall: 'east', offset: parkL / 2, width: 4.5, label: 'Balcony Window' }],
-        });
+        if (hasFfPlungePool && reqFfBeds >= 2) {
+          // Dedicated Bedroom 2 in the front left zone beneath the balcony
+          const b2L = parkL - balcL;
+          rooms.push({
+            id: `room-${roomId++}`,
+            type: 'bedroom',
+            name: 'Bedroom 2',
+            level: 1,
+            x: X0,
+            y: Y0 + balcL,
+            width: leftW,
+            length: b2L,
+            area: leftW * b2L,
+            zone: ARCHITECTURAL_ZONES.PRIVATE,
+            color: '#818cf8',
+            doors: [{ wall: 'east', offset: 2.0, width: 3.0, label: 'Bedroom 2 Entry' }],
+            windows: [{ wall: 'west', offset: Math.max(0.5, Math.round((b2L / 2 - 1.75) * 10) / 10), width: 3.5, label: 'Window' }],
+          });
 
-        // Middle & Rear Zone:
-        // Left Column: Staircase Landing (EXACT SAME x, y, width, length as Level 0!)
+          // Front Right: Master Bedroom Suite
+          rooms.push({
+            id: `room-${roomId++}`,
+            type: 'master_bedroom',
+            name: 'Master Bedroom Suite',
+            level: 1,
+            x: X0 + leftW,
+            y: Y0,
+            width: rightW,
+            length: parkL,
+            area: rightW * parkL,
+            zone: ARCHITECTURAL_ZONES.PRIVATE,
+            color: '#a855f7',
+            doors: [{ wall: 'south', offset: 2.0, width: 3.0, label: 'Master Suite Door' }],
+            windows: [{ wall: 'east', offset: Math.max(0.5, Math.round((parkL / 2 - 2.25) * 10) / 10), width: 4.5, label: 'Window' }],
+          });
+        } else {
+          // Standard front right: Family Lounge
+          rooms.push({
+            id: `room-${roomId++}`,
+            type: 'living_room',
+            name: 'Family Lounge & Study',
+            level: 1,
+            x: X0 + leftW,
+            y: Y0,
+            width: rightW,
+            length: parkL,
+            area: rightW * parkL,
+            zone: ARCHITECTURAL_ZONES.PUBLIC,
+            color: '#38bdf8',
+            doors: [{ wall: 'south', offset: Math.max(0.5, Math.round((rightW / 2 - 1.5) * 10) / 10), width: 3.0, label: 'Hallway Entry' }],
+            windows: [{ wall: 'east', offset: Math.max(0.5, Math.round((parkL / 2 - 2.25) * 10) / 10), width: 4.5, label: 'Balcony Window' }],
+          });
+        }
+
+        // Middle Zone: Left Column -> Staircase Landing (EXACT SAME x, y, width, length as Level 0!)
         rooms.push({
           id: `room-${roomId++}`,
           type: 'staircase',
@@ -772,71 +878,153 @@ export function generateTopologicalLayout(requirements) {
           level: 1,
           x: X0,
           y: rearY,
-          width: leftW,
+          width: stairW,
           length: stairL_actual,
-          area: leftW * stairL_actual,
+          area: stairW * stairL_actual,
           zone: ARCHITECTURAL_ZONES.CIRCULATION,
           color: '#64748b',
-          doors: [{ wall: 'east', offset: stairL_actual / 2, width: 3.0, label: 'Upper Landing Entry' }],
-          windows: [{ wall: 'west', offset: stairL_actual / 2, width: 2.5 }],
+          doors: [{ wall: 'east', offset: Math.max(0.5, Math.round((stairL_actual / 2 - 1.5) * 10) / 10), width: 3.0, label: 'Upper Landing Entry' }],
+          windows: [{ wall: 'west', offset: Math.max(0.5, Math.round((stairL_actual / 2 - 1.25) * 10) / 10), width: 2.5 }],
         });
 
-        // Bedroom 2 (below staircase on Level 1)
-        rooms.push({
-          id: `room-${roomId++}`,
-          type: 'bedroom',
-          name: 'Bedroom 2',
-          level: 1,
-          x: X0,
-          y: rearY + stairL_actual,
-          width: leftW,
-          length: mid2L,
-          area: leftW * mid2L,
-          zone: ARCHITECTURAL_ZONES.PRIVATE,
-          color: '#818cf8',
-          doors: [{ wall: 'east', offset: 2.0, width: 3.0, label: 'Bedroom 2 Entry' }],
-          windows: [{ wall: 'west', offset: mid2L / 2, width: 4.0, label: 'Window' }],
-        });
+        if (hasGfStorage) {
+          rooms.push({
+            id: `room-${roomId++}`,
+            type: 'corridor',
+            name: 'Upper Hallway Nook',
+            level: 1,
+            x: X0 + stairW,
+            y: rearY,
+            width: storageW,
+            length: stairL_actual,
+            area: storageW * stairL_actual,
+            zone: ARCHITECTURAL_ZONES.CIRCULATION,
+            color: '#64748b',
+            doors: [{ wall: 'east', offset: Math.max(0.5, Math.round((stairL_actual / 2 - 1.2) * 10) / 10), width: 2.4 }],
+            windows: [],
+          });
+        }
 
-        // Right Column: Master Bedroom Suite (top) + Attached Ensuite Bath (bottom)
-        const bathL = Math.max(5.5, Math.min(7.5, Math.round(rearL * 0.38)));
-        const masterBedL = rearL - bathL;
+        if (hasFfPlungePool) {
+          // Rear Left: Separate Enclosed Plunge Pool Room
+          const poolBasinW = Math.max(4.0, Math.round((leftW - 3.0) * 10) / 10);
+          const poolBasinL = Math.max(5.0, Math.round((mid2L - 3.0) * 10) / 10);
 
-        const masterBedF1 = {
-          id: `room-${roomId++}`,
-          type: 'master_bedroom',
-          name: 'Master Bedroom Suite',
-          level: 1,
-          x: X0 + leftW,
-          y: rearY,
-          width: rightW,
-          length: masterBedL,
-          area: rightW * masterBedL,
-          zone: ARCHITECTURAL_ZONES.PRIVATE,
-          color: '#a855f7',
-          doors: [{ wall: 'north', offset: 2.0, width: 3.0, label: 'Master Suite Door' }],
-          windows: [{ wall: 'east', offset: masterBedL / 2, width: 4.5, label: 'Window' }],
-        };
-        rooms.push(masterBedF1);
+          rooms.push({
+            id: `room-${roomId++}`,
+            type: 'plunge_pool',
+            name: 'First Floor Plunge Pool Room',
+            level: 1,
+            x: X0,
+            y: rearY + stairL_actual,
+            width: leftW,
+            length: mid2L,
+            area: leftW * mid2L,
+            zone: ARCHITECTURAL_ZONES.SERVICE,
+            color: '#06b6d4',
+            basin: {
+              width: poolBasinW,
+              length: poolBasinL,
+              depth: 4.0,
+              waterColor: '#06b6d4',
+            },
+            doors: [{ wall: 'east', offset: Math.max(0.5, Math.round((mid2L / 2 - 1.5) * 10) / 10), width: 3.0, label: 'Pool Room Door' }],
+            windows: [{ wall: 'west', offset: Math.max(0.5, Math.round((mid2L / 2 - 2.0) * 10) / 10), width: 4.0, label: 'Pool Ventilation' }],
+          });
 
-        const attachedBathF1 = {
-          id: `room-${roomId++}`,
-          type: 'bathroom',
-          name: 'Master Attached Bathroom (Ensuite)',
-          level: 1,
-          x: X0 + leftW,
-          y: rearY + masterBedL,
-          width: rightW,
-          length: bathL,
-          area: rightW * bathL,
-          zone: ARCHITECTURAL_ZONES.SERVICE,
-          color: '#06b6d4',
-          isAttached: true,
-          attachedToRoomId: masterBedF1.id,
-          doors: [{ wall: 'north', offset: rightW / 2, width: 2.5, label: 'Private Ensuite Door' }],
-          windows: [{ wall: 'south', offset: rightW / 2, width: 2.0, label: 'Ventilator' }],
-        };
-        rooms.push(attachedBathF1);
+          // Middle & Rear Right: Upper Lounge/Passage (top) + Attached Bathroom (bottom)
+          const bathL = Math.max(5.5, Math.min(7.5, Math.round(rearL * 0.38)));
+          const loungeL = rearL - bathL;
+
+          rooms.push({
+            id: `room-${roomId++}`,
+            type: 'living_room',
+            name: 'Family Lounge & Corridor',
+            level: 1,
+            x: X0 + leftW,
+            y: rearY,
+            width: rightW,
+            length: loungeL,
+            area: rightW * loungeL,
+            zone: ARCHITECTURAL_ZONES.PUBLIC,
+            color: '#38bdf8',
+            doors: [{ wall: 'north', offset: 2.0, width: 3.0, label: 'From Master Suite' }],
+            windows: [{ wall: 'east', offset: Math.max(0.5, Math.round((loungeL / 2 - 2.0) * 10) / 10), width: 4.0 }],
+          });
+
+          rooms.push({
+            id: `room-${roomId++}`,
+            type: 'bathroom',
+            name: 'Master Attached Bathroom (Ensuite)',
+            level: 1,
+            x: X0 + leftW,
+            y: rearY + loungeL,
+            width: rightW,
+            length: bathL,
+            area: rightW * bathL,
+            zone: ARCHITECTURAL_ZONES.SERVICE,
+            color: '#06b6d4',
+            isAttached: true,
+            doors: [{ wall: 'north', offset: 2.0, width: 2.8, label: 'Bathroom Door' }],
+            windows: [{ wall: 'south', offset: Math.max(0.5, Math.round((rightW / 2 - 1.5) * 10) / 10), width: 3.0 }],
+          });
+
+        } else {
+          // Standard Level 1 layout without plunge pool
+          rooms.push({
+            id: `room-${roomId++}`,
+            type: 'bedroom',
+            name: 'Bedroom 2',
+            level: 1,
+            x: X0,
+            y: rearY + stairL_actual,
+            width: leftW,
+            length: mid2L,
+            area: leftW * mid2L,
+            zone: ARCHITECTURAL_ZONES.PRIVATE,
+            color: '#818cf8',
+            doors: [{ wall: 'east', offset: 2.0, width: 3.0, label: 'Bedroom 2 Entry' }],
+            windows: [{ wall: 'west', offset: Math.max(0.5, Math.round((mid2L / 2 - 2.0) * 10) / 10), width: 4.0, label: 'Window' }],
+          });
+
+          const bathL = Math.max(5.5, Math.min(7.5, Math.round(rearL * 0.38)));
+          const masterBedL = rearL - bathL;
+
+          const masterBedF1 = {
+            id: `room-${roomId++}`,
+            type: 'master_bedroom',
+            name: 'Master Bedroom Suite',
+            level: 1,
+            x: X0 + leftW,
+            y: rearY,
+            width: rightW,
+            length: masterBedL,
+            area: rightW * masterBedL,
+            zone: ARCHITECTURAL_ZONES.PRIVATE,
+            color: '#a855f7',
+            doors: [{ wall: 'north', offset: 2.0, width: 3.0, label: 'Master Suite Door' }],
+            windows: [{ wall: 'east', offset: Math.max(0.5, Math.round((masterBedL / 2 - 2.25) * 10) / 10), width: 4.5, label: 'Window' }],
+          };
+          rooms.push(masterBedF1);
+
+          rooms.push({
+            id: `room-${roomId++}`,
+            type: 'bathroom',
+            name: 'Master Attached Bathroom (Ensuite)',
+            level: 1,
+            x: X0 + leftW,
+            y: rearY + masterBedL,
+            width: rightW,
+            length: bathL,
+            area: rightW * bathL,
+            zone: ARCHITECTURAL_ZONES.SERVICE,
+            color: '#06b6d4',
+            isAttached: true,
+            attachedToRoomId: masterBedF1.id,
+            doors: [{ wall: 'north', offset: rightW / 2, width: 2.5, label: 'Private Ensuite Door' }],
+            windows: [{ wall: 'south', offset: rightW / 2, width: 2.0, label: 'Ventilator' }],
+          });
+        }
       }
     }
 
@@ -902,6 +1090,8 @@ export function generateTopologicalLayout(requirements) {
     rooms: allRooms,
     floorsCount,
     floors: allFloors,
+    requirements: requirements,
+    floorRequirements: requirements?.floorRequirements,
     walls: canonicalData.walls,
     doors: canonicalData.doors,
     windows: canonicalData.windows,

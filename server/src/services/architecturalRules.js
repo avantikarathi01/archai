@@ -315,7 +315,7 @@ export function validateLayout(layout) {
     }
 
     // Door and Window placement validation
-    const validWalls = ['north', 'south', 'east', 'west'];
+    const validWalls = ['north', 'south', 'east', 'west', 'front', 'rear'];
     if (Array.isArray(room.doors)) {
       room.doors.forEach((d, dIdx) => {
         if (!validWalls.includes(d.wall)) {
@@ -327,7 +327,7 @@ export function validateLayout(layout) {
         if (typeof d.width !== 'number' || d.width <= 0) {
           errors.push(`Door #${dIdx + 1} in "${room.name}" has invalid non-positive width (${d.width}).`);
         }
-        const wallSpan = (d.wall === 'north' || d.wall === 'south') ? room.width : room.length;
+        const wallSpan = (d.wall === 'north' || d.wall === 'south' || d.wall === 'front' || d.wall === 'rear') ? room.width : room.length;
         if (d.offset + d.width > wallSpan + 0.1) {
           practicalityAlerts.push(`Door #${dIdx + 1} in "${room.name}" exceeds wall span: offset (${d.offset}) + width (${d.width}) = ${(d.offset + d.width).toFixed(1)} ft exceeds ${d.wall} wall span (${wallSpan} ft).`);
         }
@@ -345,7 +345,7 @@ export function validateLayout(layout) {
         if (typeof w.width !== 'number' || w.width <= 0) {
           errors.push(`Window #${wIdx + 1} in "${room.name}" has invalid non-positive width (${w.width}).`);
         }
-        const wallSpan = (w.wall === 'north' || w.wall === 'south') ? room.width : room.length;
+        const wallSpan = (w.wall === 'north' || w.wall === 'south' || w.wall === 'front' || w.wall === 'rear') ? room.width : room.length;
         if (w.offset + w.width > wallSpan + 0.1) {
           practicalityAlerts.push(`Window #${wIdx + 1} in "${room.name}" exceeds wall span: offset (${w.offset}) + width (${w.width}) = ${(w.offset + w.width).toFixed(1)} ft exceeds ${w.wall} wall span (${wallSpan} ft).`);
         }
@@ -435,6 +435,78 @@ export function validateLayout(layout) {
     if (!upperStair) {
       warnings.push('First floor lacks a dedicated landing zone to receive the staircase from Ground Floor.');
     }
+  }
+
+  // 4.5 Mandatory Requested Room Inventory & Floor Assignment Validation
+  const floorReqs = layout.requirements?.floorRequirements || layout.floorRequirements;
+  if (floorReqs && typeof floorReqs === 'object') {
+    Object.keys(floorReqs).forEach((floorLevelStr) => {
+      const fl = parseInt(floorLevelStr, 10);
+      const req = floorReqs[floorLevelStr];
+      if (!req || !req.specified) return;
+      const floorRooms = roomsByFloor[fl] || [];
+
+      // A. Parking
+      if (req.parking) {
+        const hasParking = floorRooms.some(r => r.type === 'parking' || /parking|garage|porch/i.test(r.name));
+        if (!hasParking) {
+          errors.push(`Missing mandatory requested room: Car Parking on Level ${fl} was requested but not allocated in the floor plan.`);
+        }
+      }
+
+      // B. Staircase
+      if (req.staircase) {
+        const hasStair = floorRooms.some(r => r.type === 'staircase' || /stair|landing/i.test(r.name));
+        if (!hasStair) {
+          errors.push(`Missing mandatory requested room: Staircase on Level ${fl} was requested but not allocated in the floor plan.`);
+        }
+      }
+
+      // C. Under-Stair Storage
+      if (req.underStairStorage) {
+        const hasStorage = floorRooms.some(r => r.type === 'storage' || /storage|store/i.test(r.name));
+        if (!hasStorage) {
+          errors.push(`Missing mandatory requested room: Enclosed Under-Stair Storage on Level ${fl} was requested but not allocated in the floor plan.`);
+        } else {
+          const storageRoom = floorRooms.find(r => r.type === 'storage' || /storage|store/i.test(r.name));
+          if (storageRoom.area < 12) {
+            errors.push(`Storage room "${storageRoom.name}" on Level ${fl} has insufficient usable clearance (${storageRoom.area} sq ft < 12 sq ft minimum).`);
+          }
+        }
+      }
+
+      // D. Plunge Pool
+      if (req.plungePool) {
+        const hasPool = floorRooms.some(r => r.type === 'plunge_pool' || /plunge\s*pool/i.test(r.name));
+        if (!hasPool) {
+          errors.push(`Missing mandatory requested room: Enclosed Plunge Pool Room on Level ${fl} was requested but not allocated in the floor plan.`);
+        } else {
+          const poolRoom = floorRooms.find(r => r.type === 'plunge_pool' || /plunge\s*pool/i.test(r.name));
+          if (poolRoom.area < 35) {
+            errors.push(`Plunge pool room "${poolRoom.name}" on Level ${fl} has insufficient containment area (${poolRoom.area} sq ft < 35 sq ft).`);
+          }
+          if (fl > 0) {
+            warnings.push(`STRUCTURAL & WATERPROOFING ADVISORY: Level ${fl} elevated plunge pool requires qualified structural engineering calculation for water live load (~62.4 lbs/cu ft) and tank waterproofing membranes.`);
+          }
+        }
+      }
+
+      // E. Bedrooms
+      if (req.bedrooms > 0) {
+        const bedCount = floorRooms.filter(r => r.type === 'bedroom' || r.type === 'master_bedroom' || /bedroom|bed\s*suite/i.test(r.name)).length;
+        if (bedCount < req.bedrooms) {
+          errors.push(`Missing mandatory requested rooms: Expected exactly ${req.bedrooms} bedroom(s) on Level ${fl}, but found ${bedCount}.`);
+        }
+      }
+
+      // F. Balcony
+      if (req.balcony) {
+        const hasBalcony = floorRooms.some(r => r.type === 'balcony' || /balcony|terrace/i.test(r.name));
+        if (!hasBalcony) {
+          errors.push(`Missing mandatory requested room: Balcony on Level ${fl} was requested but not allocated in the floor plan.`);
+        }
+      }
+    });
   }
 
   // 5. Area Metrics

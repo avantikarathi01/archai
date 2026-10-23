@@ -486,5 +486,90 @@ export function renderRoomBlueprintSymbols(room, rx, ry, rw, rl, isSelected) {
     );
   }
 
+  // 8. PLUNGE POOL (Aquatic Basin + Water Surface + Entry Steps)
+  if (type.includes('plunge') || name.includes('plunge') || (type.includes('pool') && !name.includes('billiard') && !name.includes('table'))) {
+    const margin = Math.max(8, Math.min(rw * 0.12, rl * 0.12));
+    const basinW = Math.max(20, rw - margin * 2);
+    const basinL = Math.max(24, rl - margin * 2);
+    const basinX = rx + (rw - basinW) / 2;
+    const basinY = ry + (rl - basinL) / 2;
+
+    return (
+      <g className="cad-symbol plunge-pool-symbol" pointerEvents="none" opacity={isSelected ? 0.95 : 0.85}>
+        {/* Pool Coping Outer Curb */}
+        <rect
+          x={basinX - 3}
+          y={basinY - 3}
+          width={basinW + 6}
+          height={basinL + 6}
+          fill="none"
+          stroke="#0284c7"
+          strokeWidth="1.2"
+          strokeDasharray="4 2"
+          rx="3"
+        />
+        {/* Pool Water Basin */}
+        <rect
+          x={basinX}
+          y={basinY}
+          width={basinW}
+          height={basinL}
+          fill="#0891b2"
+          fillOpacity="0.3"
+          stroke="#06b6d4"
+          strokeWidth="1.5"
+          rx="2"
+        />
+        {/* Water Ripple Lines */}
+        <path
+          d={`M ${basinX + 6} ${basinY + basinL * 0.35} Q ${basinX + basinW * 0.5} ${basinY + basinL * 0.3} ${basinX + basinW - 6} ${basinY + basinL * 0.35}`}
+          fill="none"
+          stroke="#38bdf8"
+          strokeWidth="1.0"
+          strokeOpacity="0.75"
+        />
+        <path
+          d={`M ${basinX + 10} ${basinY + basinL * 0.65} Q ${basinX + basinW * 0.5} ${basinY + basinL * 0.6} ${basinX + basinW - 10} ${basinY + basinL * 0.65}`}
+          fill="none"
+          stroke="#38bdf8"
+          strokeWidth="1.0"
+          strokeOpacity="0.75"
+        />
+        {/* Pool Corner Submerged Steps */}
+        <rect x={basinX + 3} y={basinY + 3} width={Math.min(22, basinW * 0.35)} height={8} fill="#0e7490" stroke="#38bdf8" strokeWidth="0.8" rx="1" />
+        <rect x={basinX + 3} y={basinY + 11} width={Math.min(18, basinW * 0.3)} height={7} fill="#0e7490" stroke="#38bdf8" strokeWidth="0.8" rx="1" />
+      </g>
+    );
+  }
+
+  // 9. ENCLOSED UNDER-STAIR STORAGE
+  if (type.includes('storage') || name.includes('storage') || name.includes('store')) {
+    const cabW = Math.max(14, rw - 8);
+    const cabL = Math.max(16, rl - 8);
+    const cabX = rx + (rw - cabW) / 2;
+    const cabY = ry + (rl - cabL) / 2;
+
+    return (
+      <g className="cad-symbol storage-symbol" pointerEvents="none" opacity={isSelected ? 0.9 : 0.8}>
+        {/* Cabinet Outer Frame */}
+        <rect
+          x={cabX}
+          y={cabY}
+          width={cabW}
+          height={cabL}
+          fill="#1e293b"
+          stroke="#64748b"
+          strokeWidth="1.2"
+          rx="2"
+        />
+        {/* Storage Shelving Division Lines */}
+        <line x1={cabX + 4} y1={cabY + cabL * 0.33} x2={cabX + cabW - 4} y2={cabY + cabL * 0.33} stroke="#94a3b8" strokeWidth="1" strokeDasharray="3 2" />
+        <line x1={cabX + 4} y1={cabY + cabL * 0.66} x2={cabX + cabW - 4} y2={cabY + cabL * 0.66} stroke="#94a3b8" strokeWidth="1" strokeDasharray="3 2" />
+        {/* Cabinet Door Knob Indicator */}
+        <circle cx={cabX + cabW / 2} cy={cabY + cabL - 5} r={2} fill="#cbd5e1" />
+      </g>
+    );
+  }
+
   return null;
 }

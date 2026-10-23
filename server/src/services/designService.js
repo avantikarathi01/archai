@@ -97,6 +97,10 @@ export class DesignService {
       ? generateTopologicalLayout(reqs)
       : generateProceduralLayout(reqs);
 
+    // Attach structured requirements for inventory verification
+    layout.requirements = reqs;
+    layout.floorRequirements = reqs.floorRequirements;
+
     // Run geometric validation
     const validation = validateLayout(layout);
     layout.validation = validation;

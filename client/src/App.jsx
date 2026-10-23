@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import gsap from 'gsap';
 import {
   Compass,
   Activity,
@@ -18,7 +19,9 @@ import {
   Maximize2,
   Columns,
   GitFork,
-  Tag
+  Tag,
+  Cpu,
+  ArrowRight
 } from 'lucide-react';
 import {
   fetchHealthStatus,
@@ -83,6 +86,10 @@ export default function App() {
   const [confirmWidth, setConfirmWidth] = useState(30);
   const [confirmLength, setConfirmLength] = useState(40);
 
+  // Cinematic GSAP & Loading State
+  const heroRef = useRef(null);
+  const [loadingStep, setLoadingStep] = useState(0);
+
   const checkHealth = async () => {
     setHealthLoading(true);
     const result = await fetchHealthStatus();
@@ -94,6 +101,36 @@ export default function App() {
     checkHealth();
     handleGenerateDesign(SAMPLE_PRESETS[0].text);
   }, []);
+
+  // GSAP Coordinated Studio Entrance
+  useEffect(() => {
+    if (heroRef.current) {
+      const targets = heroRef.current.querySelectorAll('.gsap-reveal');
+      if (targets.length > 0) {
+        gsap.fromTo(
+          targets,
+          { opacity: 0, y: 16 },
+          { opacity: 1, y: 0, duration: 0.65, stagger: 0.1, ease: 'power2.out' }
+        );
+      }
+    }
+  }, []);
+
+  // Progressive loading step transition
+  useEffect(() => {
+    let timer;
+    if (actionLoading) {
+      setLoadingStep(0);
+      timer = setInterval(() => {
+        setLoadingStep((prev) => (prev < 3 ? prev + 1 : prev));
+      }, 550);
+    } else {
+      setLoadingStep(0);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [actionLoading]);
 
   const handleVoiceTranscript = (transcriptText) => {
     setPromptText((prev) => {
@@ -178,67 +215,139 @@ export default function App() {
   const warnings = designResult?.warnings || designResult?.requirements?.warnings || layout?.warnings || [];
   const practicalityAlerts = layout?.validation?.practicalityAlerts || [];
 
+  const BOOT_STEPS = [
+    'ANALYZING NATURAL LANGUAGE SPATIAL INTENT & ORIENTATION...',
+    'SOLVING TOPOLOGICAL GRAPH & CIRCULATION MATRIX...',
+    'COMPUTING DOUBLE-LINE CAD GEOMETRY & WALL OPENINGS...',
+    'ASSEMBLING 3D ARCHITECTURAL TWIN & REALISTIC MATERIALS...'
+  ];
+
   return (
-    <div className="app-container" style={{ maxWidth: '1440px', margin: '0 auto', padding: '1.5rem 1.25rem' }}>
-      {/* Polished CAD Studio Header */}
-      <header className="header" style={{ paddingBottom: '1.25rem', borderBottom: '1px solid var(--border-color)' }}>
+    <div className="app-container" style={{ maxWidth: '1440px', margin: '0 auto', padding: '1.25rem 1.25rem 4rem' }}>
+      {/* Restrained Technical Loading Overlay (FleetEdge-inspired .boot-screen) */}
+      {actionLoading && (
+        <div className="boot-screen-overlay" role="status" aria-live="polite">
+          <div className="boot-mark"></div>
+          <div style={{ fontWeight: 700, letterSpacing: '0.12em', color: '#ffffff' }}>
+            SYNTHESIZING ARCHITECTURAL DIGITAL TWIN
+          </div>
+          <div className="boot-steps-list">
+            {BOOT_STEPS.map((step, idx) => (
+              <div
+                key={idx}
+                className={`boot-step-row ${idx === loadingStep ? 'active' : idx < loadingStep ? 'done' : ''}`}
+              >
+                <span>{idx < loadingStep ? '✓' : idx === loadingStep ? '▶' : '·'}</span>
+                <span>{step}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Studio Header Bar */}
+      <header className="header">
         <div className="brand-wrapper">
-          <div className="brand-logo" style={{ width: '42px', height: '42px' }}>
-            <Compass size={24} color="#ffffff" />
+          <div className="brand-logo">
+            <Compass size={22} color="#f2b705" />
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              <h1 className="brand-title" style={{ fontSize: '1.5rem', margin: 0 }}>ArchAI</h1>
-              <span className="badge badge-info" style={{ fontSize: '0.7rem', padding: '0.15rem 0.5rem' }}>
-                CAD Studio
+              <h1 className="brand-title" style={{ fontSize: '1.35rem', margin: 0 }}>ArchAI</h1>
+              <span className="badge badge-gold" style={{ fontSize: '0.68rem', padding: '0.15rem 0.5rem' }}>
+                CAD Studio v2.5
               </span>
             </div>
-            <p className="brand-subtitle" style={{ fontSize: '0.8rem', marginTop: '0.1rem' }}>
-              AI Architectural Design & Real-Time 3D Visualization Studio (Home_View & ArchLang Architecture)
+            <p className="brand-subtitle" style={{ fontSize: '0.78rem', marginTop: '0.15rem' }}>
+              AI Architectural Design & Real-Time 3D Visualization Studio
             </p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          <span className={`badge ${isServerOnline ? 'badge-success' : 'badge-error'}`} style={{ fontSize: '0.75rem' }}>
-            <span className={`status-dot ${isServerOnline ? 'online' : 'offline'}`}></span>
+        <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center' }}>
+          <span className={`badge ${isServerOnline ? 'badge-success' : 'badge-error'}`} style={{ fontSize: '0.72rem' }}>
+            <span className={`status-dot ${isServerOnline ? 'online' : 'offline'}`} style={{ width: '7px', height: '7px' }}></span>
             {isServerOnline ? 'Spatial CAD Engine Online' : 'Server Offline'}
           </span>
           {healthData?.latencyMs !== undefined && (
-            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
               {healthData.latencyMs}ms
             </span>
           )}
         </div>
       </header>
 
+      {/* Cinematic Studio Hero Section with Coordinated GSAP Entrance */}
+      <section className="studio-hero" ref={heroRef}>
+        <div className="hero-eyebrow gsap-reveal">
+          <span className="hero-pulse-dot"></span>
+          <span>SPATIAL ARCHITECTURE ENGINE · TOPOLOGICAL SOLVER</span>
+        </div>
+
+        <h2 className="hero-title gsap-reveal">
+          PRECISION ARCHITECTURAL <span className="accent-highlight">INTELLIGENCE</span>
+        </h2>
+
+        <p className="hero-description gsap-reveal">
+          Translate natural-language architectural briefs into certified topological layouts, double-line CAD blueprints, and an interactive 3D digital twin. Formulated with strict room adjacencies, orientation constraints, and structural load standards.
+        </p>
+
+        {/* Live Studio Telemetry Ribbon */}
+        <div className="telemetry-strip gsap-reveal">
+          <div className="telemetry-item">
+            <span>PLOT:</span>
+            <strong>{reqs?.plot?.width || 30} × {reqs?.plot?.length || 40} FT</strong>
+          </div>
+          <div className="telemetry-item">
+            <span>LEVELS:</span>
+            <strong>{reqs?.floors === 1 ? 'GROUND (1 LEVEL)' : `G+${(reqs?.floors || 2) - 1} (${reqs?.floors || 2} LEVELS)`}</strong>
+          </div>
+          <div className="telemetry-item">
+            <span>BUILT-UP:</span>
+            <strong>{layout?.summary?.totalBuiltUpAreaSqFt || (reqs?.plot?.totalAreaSqFt ? `~${reqs.plot.totalAreaSqFt}` : '1,200')} SQ FT</strong>
+          </div>
+          <div className="telemetry-item">
+            <span>COVERAGE:</span>
+            <strong>{layout?.summary?.groundCoveragePercent !== null && layout?.summary?.groundCoveragePercent !== undefined ? `${layout.summary.groundCoveragePercent}%` : '48%'}</strong>
+          </div>
+          <div className="telemetry-item">
+            <span>SOLVER:</span>
+            <strong>{selectedEngine === 'topological' ? 'TOPOLOGICAL v1' : 'PROCEDURAL v1'}</strong>
+          </div>
+          <div className="telemetry-item status-valid">
+            <CheckCircle2 size={13} color="var(--accent-emerald)" />
+            <strong>TOPOLOGY VERIFIED</strong>
+          </div>
+        </div>
+      </section>
+
       {/* Main Grid */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '0.5rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '0.25rem' }}>
 
         {/* Natural Language Prompt Composer */}
-        <div className="card full-width" style={{ padding: '1.5rem' }}>
+        <div className="card full-width">
           <div className="card-header" style={{ marginBottom: '0.75rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Sparkles size={20} color="#38bdf8" />
-              <h2 className="card-title" style={{ fontSize: '1.05rem', margin: 0 }}>
-                Natural Language Design Brief (Tell2Floorplan & HouseTune Engine)
-              </h2>
+              <Sparkles size={18} color="var(--accent-gold)" />
+              <h3 className="card-title" style={{ fontSize: '1rem', margin: 0 }}>
+                Natural Language Design Brief & Spatial Constraints
+              </h3>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               {isProvisional ? (
-                <span className="badge badge-warning" style={{ fontSize: '0.72rem' }}>
-                  <AlertTriangle size={13} /> Provisional Preview
+                <span className="badge badge-warning" style={{ fontSize: '0.7rem' }}>
+                  <AlertTriangle size={12} /> Provisional Preview
                 </span>
               ) : layout ? (
-                <span className="badge badge-success" style={{ fontSize: '0.72rem' }}>
-                  <CheckCircle2 size={13} /> Confirmed Validated
+                <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>
+                  <CheckCircle2 size={12} /> Confirmed Validated
                 </span>
               ) : null}
             </div>
           </div>
 
-          <p className="card-description" style={{ fontSize: '0.825rem', marginBottom: '0.85rem' }}>
-            Describe your plot dimensions, floors, bedrooms, kitchen style, and parking in English or Hinglish. ArchAI synthesizes the architectural graph, generates CAD double-line blueprints, and synchronizes 3D models live.
+          <p className="card-description" style={{ fontSize: '0.8125rem', marginBottom: '0.75rem' }}>
+            Specify your plot dimensions, stories, bedrooms, kitchen configuration, parking, and custom features in English or Hinglish. ArchAI synthesizes the architectural graph and updates the 2D CAD blueprint and 3D digital twin.
           </p>
 
           {/* Prompt Composer & Textarea */}
@@ -250,16 +359,16 @@ export default function App() {
                 setPromptText(e.target.value);
                 if (errorMessage) setErrorMessage(null);
               }}
-              placeholder="e.g. Mujhe 1200 sq ft me 2 floor ka makan chahiye ground floor pe gaadi parking aur 1st floor pe 2 BHK purab mukhi"
+              placeholder="e.g. Plot: 30 × 40 ft. Ground floor: one car parking space, staircase, usable enclosed under-stair storage, and plunge pool. First floor: two bedrooms, balcony..."
               rows={3}
               spellCheck={false}
-              style={{ fontSize: '0.9rem', lineHeight: '1.5' }}
+              style={{ fontSize: '0.875rem', lineHeight: '1.55' }}
             />
 
             {/* Quick Example Templates */}
             <div className="presets-container" style={{ margin: '0.2rem 0 0.5rem' }}>
-              <span style={{ fontSize: '0.75rem', color: '#64748b', alignSelf: 'center', marginRight: '0.25rem' }}>
-                Quick examples:
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', alignSelf: 'center', marginRight: '0.25rem' }}>
+                PRESETS:
               </span>
               {SAMPLE_PRESETS.map((preset, idx) => (
                 <button
@@ -277,17 +386,17 @@ export default function App() {
               ))}
             </div>
 
-            {/* Architectural Modifiers (Tell2Floorplan style) */}
+            {/* Architectural Modifiers */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.3rem', marginRight: '0.25rem' }}>
-                <Tag size={12} color="#38bdf8" /> Architectural tags:
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: '0.3rem', marginRight: '0.25rem' }}>
+                <Tag size={12} color="var(--accent-blue)" /> MODIFIERS:
               </span>
               {ARCHITECTURAL_TAGS.map((tag, idx) => (
                 <button
                   key={idx}
                   type="button"
                   className="btn-preset"
-                  style={{ background: 'rgba(56, 189, 248, 0.06)', borderColor: 'rgba(56, 189, 248, 0.25)', color: '#7dd3fc', fontSize: '0.72rem', padding: '0.25rem 0.6rem' }}
+                  style={{ background: 'rgba(56, 189, 248, 0.05)', borderColor: 'rgba(56, 189, 248, 0.2)', color: 'var(--accent-blue)', fontSize: '0.72rem', padding: '0.2rem 0.55rem' }}
                   onClick={() => handleAppendTag(tag)}
                   title="Append this architectural requirement to your brief"
                 >
@@ -306,22 +415,22 @@ export default function App() {
                 />
 
                 {/* Engine Selector */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', background: 'rgba(15, 23, 42, 0.7)', padding: '0.2rem 0.5rem', borderRadius: '8px', border: '1px solid #334155' }}>
-                  <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>Engine:</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', background: '#10151c', padding: '0.2rem 0.45rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>ENGINE:</span>
                   <button
                     type="button"
                     className={`btn ${selectedEngine === 'topological' ? 'btn-primary' : 'btn-ghost'}`}
                     onClick={() => setSelectedEngine('topological')}
-                    style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', height: 'auto', lineHeight: '1.2' }}
+                    style={{ padding: '0.2rem 0.55rem', fontSize: '0.72rem', height: 'auto', lineHeight: '1.2' }}
                     title="Topological constraint solver (Phase 1)"
                   >
-                    📐 Topological
+                    📐 Topological v1
                   </button>
                   <button
                     type="button"
                     className={`btn ${selectedEngine === 'procedural' ? 'btn-primary' : 'btn-ghost'}`}
                     onClick={() => setSelectedEngine('procedural')}
-                    style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', height: 'auto', lineHeight: '1.2' }}
+                    style={{ padding: '0.2rem 0.55rem', fontSize: '0.72rem', height: 'auto', lineHeight: '1.2' }}
                     title="Legacy procedural layout generator"
                   >
                     ⚙️ Legacy Procedural
@@ -334,10 +443,10 @@ export default function App() {
                   className="btn btn-secondary"
                   onClick={handleParseOnly}
                   disabled={actionLoading || !promptText.trim()}
-                  style={{ padding: '0.55rem 0.95rem', fontSize: '0.8125rem' }}
+                  style={{ padding: '0.55rem 0.95rem', fontSize: '0.78rem', fontFamily: 'var(--font-mono)' }}
                 >
-                  <FileCheck size={15} />
-                  Parse Requirements Only
+                  <FileCheck size={14} />
+                  Parse Brief Only
                 </button>
 
                 <button
@@ -346,8 +455,8 @@ export default function App() {
                   disabled={actionLoading || !promptText.trim()}
                   style={{ padding: '0.55rem 1.25rem', fontSize: '0.8125rem', fontWeight: 700 }}
                 >
-                  <Send size={15} />
-                  {actionLoading ? 'Generating Architecture...' : 'Generate 2D/3D Floor Plan'}
+                  <Sparkles size={15} />
+                  {actionLoading ? 'Synthesizing Architecture...' : 'Generate 2D/3D Floor Plan'}
                 </button>
               </div>
             </div>

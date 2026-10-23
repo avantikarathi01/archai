@@ -44,6 +44,8 @@ function extractFloorSpecificRequirements(lowerText, totalFloors) {
       poojaRoom: false,
       balcony: false,
       staircase: totalFloors > 1,
+      underStairStorage: false,
+      plungePool: false,
       commonWashroom: false,
       attachedBath: false,
       entertainmentRoom: false,
@@ -53,8 +55,8 @@ function extractFloorSpecificRequirements(lowerText, totalFloors) {
   }
 
   // Detect Ground Floor clause:
-  // e.g. "ground floor pe gaadi parking" or "ground-floor parking"
-  const gfMatch = lowerText.match(/(?:ground[- ]*floor|ground[- ]*level|nichli[- ]*manzil|ground)(?:[\s-]*(?:pe|par|me|mein|pr|with))?[\s-]+(.+?)(?=(?:1st|first|2nd|second|upper|dusri|pehli)[- ]*(?:floor|manzil)|purab|purav|uttar|pashchim|dakshin|east|west|north|south|$)/i);
+  // e.g. "ground floor pe gaadi parking" or "ground floor: one car parking space..."
+  const gfMatch = lowerText.match(/(?:ground[- ]*floor|ground[- ]*level|nichli[- ]*manzil|\bground\b)(?:[\s:]*(?:pe|par|me|mein|pr|with))?[\s:,-]+(.+?)(?=(?:1st|first|2nd|second|upper|dusri|pehli)[- ]*(?:floor|manzil)|purab|purav|uttar|pashchim|dakshin|east|west|north|south|$)/i);
   let hasGfSpecific = false;
   if (gfMatch) {
     const clause = gfMatch[1].trim();
@@ -103,9 +105,21 @@ function extractFloorSpecificRequirements(lowerText, totalFloors) {
       floorMap[0].staircase = true;
     }
 
+    // Check under-stair storage on GF
+    if (/under[- ]*stair(?:case)?[- ]*storage|storage\s*(?:under|below)\s*stair(?:case)?|under[- ]*stair|usable\s*enclosed\s*storage|enclosed\s*storage|store\s*room|storage\s*room/i.test(clause)) {
+      floorMap[0].underStairStorage = true;
+    }
+
+    // Check aquatic plunge pool on GF
+    if (/plunge\s*pool|swimming\s*pool|splash\s*pool|water\s*pool|dip\s*pool|actual\s*(?:small\s*)?pool/i.test(clause)) {
+      floorMap[0].plungePool = true;
+    } else if (/pool\s*room|billiards|snooker/i.test(clause)) {
+      floorMap[0].poolRoom = 'billiards';
+    }
+
     // Check bedrooms on GF
     const gfBhkMatch = clause.match(/(\d+|ek|one|do|two|teen|three|char|four)\s*[-]?\s*bhk/i);
-    const gfBedMatch = clause.match(/(\d+|ek|one|do|two|teen|three|char|four)[\s-]*(?:bedroom|bedrooms|bed\s*room|kamre|kamra)/i);
+    const gfBedMatch = clause.match(/(?:exactly\s+)?(\d+|ek|one|do|two|teen|three|char|four)[\s-]*(?:bedroom|bedrooms|bed\s*room|kamre|kamra)/i);
     if (gfBhkMatch) {
       const n = NUMBER_WORDS[gfBhkMatch[1].toLowerCase()] || parseInt(gfBhkMatch[1], 10) || 1;
       floorMap[0].bedrooms = n;
@@ -135,8 +149,8 @@ function extractFloorSpecificRequirements(lowerText, totalFloors) {
   }
 
   // Detect 1st Floor / Upper Floor clause:
-  // e.g. "1st floor pe 2 BHK" or "first-floor bedroom with attached bathroom and balcony"
-  const ffMatch = lowerText.match(/(?:1st|first|pehli|upper)[- ]*(?:floor|manzil)(?:[\s-]*(?:pe|par|me|mein|pr|with))?[\s-]+(.+?)(?=(?:2nd|second|ground|nichli)[- ]*(?:floor|manzil)|purab|purav|uttar|pashchim|dakshin|east|west|north|south|$)/i);
+  // e.g. "1st floor pe 2 BHK" or "first floor: exactly two bedrooms..."
+  const ffMatch = lowerText.match(/(?:1st|first|pehli|upper)[- ]*(?:floor|manzil)(?:[\s:]*(?:pe|par|me|mein|pr|with))?[\s:,-]+(.+?)(?=(?:2nd|second|ground|nichli)[- ]*(?:floor|manzil)|purab|purav|uttar|pashchim|dakshin|east|west|north|south|$)/i);
   let hasFfSpecific = false;
   if (ffMatch) {
     const clause = ffMatch[1].trim();
@@ -148,8 +162,10 @@ function extractFloorSpecificRequirements(lowerText, totalFloors) {
       floorMap[1].entertainmentRoom = true;
     }
 
-    // Check pool room on FF
-    if (/pool\s*room|billiards|snooker/i.test(clause)) {
+    // Check plunge pool vs billiards on FF
+    if (/plunge\s*pool|swimming\s*pool|splash\s*pool|water\s*pool|dip\s*pool|actual\s*(?:small\s*)?pool/i.test(clause)) {
+      floorMap[1].plungePool = true;
+    } else if (/pool\s*room|billiards|snooker/i.test(clause)) {
       floorMap[1].poolRoom = 'billiards';
     }
 
@@ -171,7 +187,7 @@ function extractFloorSpecificRequirements(lowerText, totalFloors) {
 
     // Check bedrooms on FF
     const ffBhkMatch = clause.match(/(\d+|ek|one|do|two|teen|three|char|four)\s*[-]?\s*bhk/i);
-    const ffBedMatch = clause.match(/(\d+|ek|one|do|two|teen|three|char|four)[\s-]*(?:bedroom|bedrooms|bed\s*room|kamre|kamra)/i);
+    const ffBedMatch = clause.match(/(?:exactly\s+)?(\d+|ek|one|do|two|teen|three|char|four)[\s-]*(?:bedroom|bedrooms|bed\s*room|kamre|kamra)/i);
     if (ffBhkMatch) {
       const n = NUMBER_WORDS[ffBhkMatch[1].toLowerCase()] || parseInt(ffBhkMatch[1], 10) || 1;
       floorMap[1].bedrooms = n;
@@ -235,10 +251,10 @@ export function parsePromptRequirements(promptText = '') {
   let isDimensionsExplicit = false;
 
   // Check if dimensions are explicitly in meters (e.g. 10x15m, 10 by 15 meters, 10m x 15m)
-  const isMeterDimensions = /(?:\d+(?:\.\d+)?)\s*(?:m|meter|meters|metre|metres)\s*(?:x|\*|by|into|X)|(?:x|\*|by|into|X)\s*(?:\d+(?:\.\d+)?)\s*(?:m|meter|meters|metre|metres)\b/i.test(lower);
+  const isMeterDimensions = /(?:\d+(?:\.\d+)?)\s*(?:m|meter|meters|metre|metres)\s*(?:x|\*|by|into|X|×|\u00d7)|(?:x|\*|by|into|X|×|\u00d7)\s*(?:\d+(?:\.\d+)?)\s*(?:m|meter|meters|metre|metres)\b/i.test(lower);
 
-  // Patterns like "30x40", "30*40", "30 by 40", "30 x 40 ft"
-  const dimMatch = lower.match(/(\d+(?:\.\d+)?)\s*(?:x|\*|by|into|X)\s*(\d+(?:\.\d+)?)\s*(?:ft|feet|fit|foot|m|meter|meters|metre|metres)?/i);
+  // Patterns like "30x40", "30*40", "30 by 40", "30 x 40 ft", "30 × 40 ft", "Plot: 30 × 40 ft"
+  const dimMatch = lower.match(/(?:plot\s*[:\s-]*)?(\d+(?:\.\d+)?)\s*(?:x|\*|by|into|X|×|\u00d7)\s*(\d+(?:\.\d+)?)\s*(?:ft|feet|fit|foot|m|meter|meters|metre|metres)?/i);
   if (dimMatch) {
     let d1 = parseFloat(dimMatch[1]);
     let d2 = parseFloat(dimMatch[2]);
@@ -330,6 +346,18 @@ export function parsePromptRequirements(promptText = '') {
     for (let f = 0; f < floorsCount; f++) {
       totalBedrooms += floorMap[f].bedrooms;
       totalBathrooms += floorMap[f].bathrooms;
+    }
+    // If bedrooms were not specified on individual floors, check if a global bedroom count was mentioned
+    if (totalBedrooms === 0) {
+      const bhkMatch = lower.match(/(\d+|ek|one|do|two|teen|three|char|four)\s*[-]?\s*bhk/i);
+      const bedMatch = lower.match(/(?:exactly\s+)?(\d+|ek|one|do|two|teen|three|char|four)[\s-]*(?:bedroom|bedrooms|bed\s*room|kamre|kamra)/i);
+      if (bhkMatch) {
+        const val = bhkMatch[1].toLowerCase();
+        totalBedrooms = NUMBER_WORDS[val] || parseInt(val, 10) || 0;
+      } else if (bedMatch) {
+        const val = bedMatch[1].toLowerCase();
+        totalBedrooms = NUMBER_WORDS[val] || parseInt(val, 10) || 0;
+      }
     }
   } else {
     // Global bedrooms extraction
@@ -474,18 +502,36 @@ export function parsePromptRequirements(promptText = '') {
   }
 
   // ==========================================
-  // 7.5 Special Functional Rooms: Dining, Entertainment, Pool Room, Washroom
+  // 7.5 Special Functional Rooms: Dining, Entertainment, Pool Room, Washroom, Storage, Plunge Pool
   // ==========================================
   const dining = /dining/i.test(lower);
   const entertainmentRoom = /entertainment|home\s*theatre|media\s*room|multipurpose/i.test(lower);
-  const poolRoom = /pool\s*room|billiards|snooker/i.test(lower) ? 'billiards' : false;
+  const isAquaticPool = /plunge\s*pool|swimming\s*pool|splash\s*pool|water\s*pool|dip\s*pool|actual\s*(?:small\s*)?pool/i.test(lower);
+  const isBilliards = /billiards|snooker|pool\s*table/i.test(lower);
+  const poolRoom = isBilliards ? 'billiards' : false;
   const commonWashroom = /common\s*(?:washroom|bathroom|toilet)|powder\s*room/i.test(lower);
   const masterBedroom = /master\s*bedroom/i.test(lower);
   const attachedBath = /attached\s*(?:bath|bathroom|toilet|washroom)/i.test(lower);
 
+  const underStairStorage = /under[- ]*stair(?:case)?[- ]*storage|storage\s*(?:under|below)\s*stair(?:case)?|under[- ]*stair\s*store|usable\s*enclosed\s*under[- ]*stair\s*storage|enclosed\s*under[- ]*stair/i.test(lower) || Object.values(floorMap).some(f => f.underStairStorage);
+
+  const plungePool = {
+    specified: isAquaticPool || Object.values(floorMap).some(f => f.plungePool),
+    required: isAquaticPool || Object.values(floorMap).some(f => f.plungePool),
+  };
+
   if (dining) floorMap[0].dining = true;
   if (entertainmentRoom && floorsCount > 1) floorMap[1].entertainmentRoom = true;
   if (poolRoom && floorsCount > 1) floorMap[1].poolRoom = poolRoom;
+  if (isAquaticPool) {
+    // If not already floor-assigned, default to Ground Floor or all floors if multi
+    if (!floorMap[0].plungePool && !floorMap[1]?.plungePool) {
+      floorMap[0].plungePool = true;
+    }
+  }
+  if (underStairStorage) {
+    floorMap[0].underStairStorage = true;
+  }
   if (commonWashroom) floorMap[0].commonWashroom = true;
   if (attachedBath) floorMap[0].attachedBath = true;
   if (masterBedroom) {
@@ -654,6 +700,11 @@ export function parsePromptRequirements(promptText = '') {
       poojaRoom,
       entertainmentRoom,
       poolRoom,
+      plungePool,
+      underStairStorage: {
+        specified: underStairStorage,
+        required: underStairStorage,
+      },
       commonWashroom,
       masterBedroom,
       attachedBath,

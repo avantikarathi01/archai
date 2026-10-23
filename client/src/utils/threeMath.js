@@ -267,6 +267,8 @@ export const ARCHITECTURAL_PALETTE = {
     foyer: 0xe2e8f0,          // Entry stone
     pooja: 0xfef08a,          // Warm sandstone
     utility: 0x94a3b8,        // Wash tile
+    plunge_pool: 0x0891b2,    // Deep aquatic mosaic tile
+    storage: 0x475569,        // Architectural dark slate
     default: 0xdde3ea,
   }
 };
@@ -1050,9 +1052,123 @@ export function generateRoomFurniture(room, plotWidth, plotLength, baseY = 0) {
   }
 
   // =========================================================================
-  // 8. BILLIARDS / POOL ROOM: Tournament Slate Table + Felt + Rails + Pockets + Balls + Cues
+  // 7.6 AQUATIC PLUNGE POOL: Real Tiled Basin + Coping Deck + Translucent Water Surface + Steps
   // =========================================================================
-  else if (type.includes('pool') || type.includes('billiard') || name.includes('pool') || name.includes('billiard')) {
+  else if (type.includes('plunge') || name.includes('plunge') || (type.includes('pool') && !type.includes('billiard') && !name.includes('billiard') && !name.includes('snooker') && !name.includes('table'))) {
+    const basinMarginW = Math.max(1.2, w * 0.15);
+    const basinMarginL = Math.max(1.2, l * 0.15);
+    const poolW = Math.max(4.0, w - basinMarginW * 2);
+    const poolL = Math.max(5.0, l - basinMarginL * 2);
+    const copingThick = 0.55;
+
+    // A. Perimeter Tiled Coping / Plinth Deck
+    items.push({
+      name: 'pool_coping_surround',
+      type: 'box',
+      x: cx,
+      y: baseY + 0.15,
+      z: cz,
+      w: poolW + copingThick * 2,
+      l: poolL + copingThick * 2,
+      h: 0.3,
+      color: 0x94a3b8, // Smooth architectural limestone coping
+      roughness: 0.35,
+      metalness: 0.1
+    });
+
+    // B. Inner Tiled Basin Wall Liner (Aquatic mosaic)
+    items.push({
+      name: 'pool_basin_liner',
+      type: 'box',
+      x: cx,
+      y: baseY + 0.08,
+      z: cz,
+      w: poolW,
+      l: poolL,
+      h: 0.16,
+      color: 0x0891b2, // Deep aquatic turquoise mosaic
+      roughness: 0.2,
+      metalness: 0.25
+    });
+
+    // C. Shimmering Translucent Aquatic Water Surface
+    items.push({
+      name: 'pool_water_surface',
+      type: 'box',
+      x: cx,
+      y: baseY + 0.22,
+      z: cz,
+      w: poolW - 0.2,
+      l: poolL - 0.2,
+      h: 0.05,
+      color: 0x06b6d4, // Vibrant cyan clear water
+      roughness: 0.05,
+      metalness: 0.35,
+      transparent: true,
+      opacity: 0.78
+    });
+
+    // D. Submerged Stainless Steel Pool Steps / Entry Bench
+    items.push({
+      name: 'pool_access_steps',
+      type: 'box',
+      x: cx - poolW / 2 + 1.0,
+      y: baseY + 0.32,
+      z: cz,
+      w: 1.6,
+      l: 2.2,
+      h: 0.3,
+      color: 0x67e8f9,
+      roughness: 0.25,
+      metalness: 0.6
+    });
+  }
+
+  // =========================================================================
+  // 7.7 ENCLOSED UNDER-STAIR STORAGE: Slate Cabinetry + Shelving Tiers + Panel Doors
+  // =========================================================================
+  else if (type.includes('storage') || name.includes('storage') || name.includes('store')) {
+    const cabW = Math.max(1.8, w - 0.8);
+    const cabL = Math.max(2.5, l - 0.8);
+    const cabH = 4.2;
+
+    // Storage Cabinet Unit Base & Framing
+    items.push({
+      name: 'storage_cabinet_unit',
+      type: 'box',
+      x: cx,
+      y: baseY + cabH / 2,
+      z: cz,
+      w: cabW,
+      l: cabL,
+      h: cabH,
+      color: 0x334155, // Architectural slate cabinetry
+      roughness: 0.7,
+      metalness: 0.15
+    });
+
+    // Shelving Tier Ribs
+    [-1, 0, 1].forEach((step, sIdx) => {
+      items.push({
+        name: `storage_shelf_${sIdx}`,
+        type: 'box',
+        x: cx,
+        y: baseY + 1.2 + sIdx * 1.2,
+        z: cz,
+        w: cabW + 0.05,
+        l: cabL * 0.45,
+        h: 0.1,
+        color: 0x64748b,
+        roughness: 0.5,
+        metalness: 0.2
+      });
+    });
+  }
+
+  // =========================================================================
+  // 8. BILLIARDS / POOL TABLE: Tournament Slate Table + Felt + Rails + Pockets + Balls + Cues
+  // =========================================================================
+  else if (type.includes('billiard') || name.includes('billiard') || name.includes('snooker') || name.includes('pool table') || (type.includes('pool') && name.includes('table'))) {
     // Standard 8ft or 9ft pool table (8.5 x 4.5 ft)
     const tableW = Math.min(w - 4.0, 5.0);
     const tableL = Math.min(l - 4.0, 9.0);

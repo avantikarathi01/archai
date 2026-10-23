@@ -117,6 +117,20 @@ export const STANDARD_ROOM_SPECS = {
     zone: ROOM_ZONES.SERVICE,
     color: '#f97316',
   },
+  plunge_pool: {
+    minWidth: 6,
+    minArea: 40,
+    recommendedArea: 80,
+    zone: ROOM_ZONES.SERVICE,
+    color: '#06b6d4',
+  },
+  storage: {
+    minWidth: 3,
+    minArea: 15,
+    recommendedArea: 35,
+    zone: ROOM_ZONES.SERVICE,
+    color: '#64748b',
+  },
 };
 
 /**
