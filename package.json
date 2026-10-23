@@ -1,11 +1,18 @@
 {
-  "name": "archai-workspace",
+  "name": "archai",
   "version": "1.0.0",
   "private": true,
-  "description": "ArchAI - AI-Powered Architectural Design Platform Workspace",
+  "type": "module",
+  "description": "ArchAI - AI-Powered Architectural Intelligence & Generative CAD Platform",
   "scripts": {
+    "build": "cd client && npm install && npm run build",
     "server": "npm --prefix server run dev",
     "client": "npm --prefix client run dev",
-    "test:server": "npm --prefix server test"
+    "test": "npm --prefix server test"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7"
   }
 }
