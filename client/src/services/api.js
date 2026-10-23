@@ -163,3 +163,68 @@ export async function estimateDesignCost({ layout, options }) {
     return { ok: false, error: error.message || 'Failed to estimate construction cost' };
   }
 }
+
+/**
+ * Generate 3 multi-option design alternatives (Lowest Cost, Space Maximizer, Balanced)
+ * with comparative BOQ, climate metrics, and trade-offs.
+ */
+export async function optimizeDesignCost({ prompt, requirements, plotDimensions, options, userBudget, currency, tier, unitRates }) {
+  try {
+    const response = await fetch('/api/designs/cost-optimize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, requirements, plotDimensions, options, userBudget, currency, tier, unitRates }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      return { ok: false, error: data.error || `HTTP ${response.status}`, data };
+    }
+    return { ok: true, data };
+  } catch (error) {
+    return { ok: false, error: error.message || 'Failed to optimize design alternatives' };
+  }
+}
+
+/**
+ * Recalculate or generate categorized BOQ from layout
+ */
+export async function fetchCategorizedBOQ({ layout, options = {} }) {
+  try {
+    const response = await fetch('/api/designs/boq', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ layout, options }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      return { ok: false, error: data.error || `HTTP ${response.status}`, data };
+    }
+    return { ok: true, data };
+  } catch (error) {
+    return { ok: false, error: error.message || 'Failed to generate BOQ' };
+  }
+}
+
+/**
+ * Fetch climate, daylighting, plumbing alignment, and structural insights
+ */
+export async function fetchClimateInsights({ layout, options = {} }) {
+  try {
+    const response = await fetch('/api/designs/climate-insights', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ layout, options }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      return { ok: false, error: data.error || `HTTP ${response.status}`, data };
+    }
+    return { ok: true, data };
+  } catch (error) {
+    return { ok: false, error: error.message || 'Failed to fetch climate insights' };
+  }
+}
+

@@ -70,7 +70,8 @@ export function getSharedBoundary(r1, r2, tolerance = 0.2) {
  * @param {object} requirements - Structured requirements or extracted intent
  * @returns {object} Canonical floor plan design with floors, walls, doors, windows, stairs
  */
-export function generateTopologicalLayout(requirements) {
+export function generateTopologicalLayout(requirements, options = {}) {
+  const strategy = options?.strategy || requirements?.strategy || 'balanced_daylight';
   let plotWidth = Number(requirements?.plot?.width);
   let plotLength = Number(requirements?.plot?.length);
   const totalAreaSqFt = Number(requirements?.plot?.totalAreaSqFt);
@@ -608,8 +609,20 @@ export function generateTopologicalLayout(requirements) {
       // =======================================================================
       // MULTI-FLOOR (G+1) DISJOINT PARTITION
       // =======================================================================
-      const parkW = Math.max(9.5, Math.min(13.0, Math.round(W * 0.44)));
-      const parkL = Math.max(15.0, Math.min(17.5, Math.round(L * 0.40)));
+      let parkW_ratio = 0.44;
+      let parkL_ratio = 0.40;
+      if (strategy === 'cost_optimized') {
+        // Modular structural bays & grouped wet cores
+        parkW_ratio = 0.40;
+        parkL_ratio = 0.38;
+      } else if (strategy === 'space_optimized') {
+        // Streamlined parking to maximize living & bedroom carpet areas
+        parkW_ratio = 0.38;
+        parkL_ratio = 0.36;
+      }
+
+      const parkW = Math.max(9.5, Math.min(13.0, Math.round(W * parkW_ratio)));
+      const parkL = Math.max(15.0, Math.min(17.5, Math.round(L * parkL_ratio)));
       const leftW = parkW;
       const rightW = W - leftW;
       const rearY = Y0 + parkL;
@@ -1090,6 +1103,7 @@ export function generateTopologicalLayout(requirements) {
     rooms: allRooms,
     floorsCount,
     floors: allFloors,
+    strategy,
     requirements: requirements,
     floorRequirements: requirements?.floorRequirements,
     walls: canonicalData.walls,

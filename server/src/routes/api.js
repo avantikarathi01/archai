@@ -1,5 +1,8 @@
 import express from 'express';
 import { designService } from '../services/designService.js';
+import { designOptimizer } from '../services/designOptimizer.js';
+import { generateCategorizedBOQ } from '../services/boqEngine.js';
+import { analyzeBuildability } from '../services/buildabilityAnalyzer.js';
 import { COMPLIANCE_DISCLAIMER } from '../services/architecturalRules.js';
 
 const router = express.Router();
@@ -221,5 +224,114 @@ function handleCostEstimate(req, res) {
 }
 
 router.post('/designs/cost-estimate', handleCostEstimate);
+
+/**
+ * ---------------------------------------------------------------------------
+ * Multi-Option Design Optimization Handler
+ * Generates 3 layout alternatives (Lowest Cost, Space Maximizer, Balanced)
+ * with comparative BOQ, climate metrics, and trade-offs.
+ * Supported route:
+ *   POST /api/designs/cost-optimize
+ * ---------------------------------------------------------------------------
+ */
+async function handleCostOptimize(req, res) {
+  const { prompt, requirements, plotDimensions, options, userBudget, currency, tier, unitRates } = req.body || {};
+
+  if ((!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) && !requirements) {
+    return res.status(400).json({
+      status: 'error',
+      error: 'Either a "prompt" string or a "requirements" object must be provided for cost optimization.',
+      disclaimer: COMPLIANCE_DISCLAIMER,
+    });
+  }
+
+  try {
+    const result = await designOptimizer.generateAlternatives({
+      prompt,
+      requirements,
+      plotDimensions,
+      options,
+      userBudget,
+      currency,
+      tier,
+      unitRates,
+    });
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(422).json({
+      status: 'error',
+      error: error.message || 'Failed to generate design optimization alternatives.',
+      disclaimer: COMPLIANCE_DISCLAIMER,
+    });
+  }
+}
+
+router.post('/designs/cost-optimize', handleCostOptimize);
+
+/**
+ * ---------------------------------------------------------------------------
+ * Categorized Bill of Quantities (BOQ) Generator Handler
+ * Computes measurable quantities and priced items directly from layout geometry.
+ * Supported route:
+ *   POST /api/designs/boq
+ * ---------------------------------------------------------------------------
+ */
+function handleGenerateBOQ(req, res) {
+  const { layout, options = {} } = req.body || {};
+
+  if (!layout) {
+    return res.status(400).json({
+      status: 'error',
+      error: 'A valid "layout" object is required in the request body for BOQ generation.',
+      disclaimer: COMPLIANCE_DISCLAIMER,
+    });
+  }
+
+  try {
+    const boq = generateCategorizedBOQ(layout, options);
+    return res.status(200).json(boq);
+  } catch (error) {
+    return res.status(422).json({
+      status: 'error',
+      error: error.message || 'Failed to generate Bill of Quantities.',
+      disclaimer: COMPLIANCE_DISCLAIMER,
+    });
+  }
+}
+
+router.post('/designs/boq', handleGenerateBOQ);
+
+/**
+ * ---------------------------------------------------------------------------
+ * Climate and Buildability Insights Handler
+ * Computes daylight, cross-ventilation, plumbing stack alignment, and structural spans.
+ * Supported route:
+ *   POST /api/designs/climate-insights
+ * ---------------------------------------------------------------------------
+ */
+function handleClimateInsights(req, res) {
+  const { layout, options = {} } = req.body || {};
+
+  if (!layout) {
+    return res.status(400).json({
+      status: 'error',
+      error: 'A valid "layout" object is required in the request body for climate insights.',
+      disclaimer: COMPLIANCE_DISCLAIMER,
+    });
+  }
+
+  try {
+    const insights = analyzeBuildability(layout, options);
+    return res.status(200).json(insights);
+  } catch (error) {
+    return res.status(422).json({
+      status: 'error',
+      error: error.message || 'Failed to analyze climate and buildability.',
+      disclaimer: COMPLIANCE_DISCLAIMER,
+    });
+  }
+}
+
+router.post('/designs/climate-insights', handleClimateInsights);
 
 export default router;

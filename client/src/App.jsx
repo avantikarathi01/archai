@@ -21,7 +21,8 @@ import {
   GitFork,
   Tag,
   Cpu,
-  ArrowRight
+  ArrowRight,
+  Calculator
 } from 'lucide-react';
 import {
   fetchHealthStatus,
@@ -32,6 +33,7 @@ import FloorPlan2D from './components/FloorPlan2D/FloorPlan2D';
 import Viewer3D from './components/Viewer3D/Viewer3D';
 import VoiceInput from './components/VoiceInput/VoiceInput';
 import ArchLangPanel from './components/ArchLang/ArchLangPanel';
+import CostOptimizer from './components/CostOptimizer/CostOptimizer';
 
 const SAMPLE_PRESETS = [
   {
@@ -80,7 +82,7 @@ export default function App() {
   const [actionLoading, setActionLoading] = useState(false);
   const [designResult, setDesignResult] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
-  const [activeTab, setActiveTab] = useState('split'); // 'split' | 'canvas' | '3d' | 'archlang' | 'rooms' | 'validation' | 'json'
+  const [activeTab, setActiveTab] = useState('split'); // 'split' | 'canvas' | '3d' | 'archlang' | 'rooms' | 'validation' | 'json' | 'cost'
 
   // Confirmed Dimension Input State
   const [confirmWidth, setConfirmWidth] = useState(30);
@@ -760,6 +762,24 @@ export default function App() {
                 >
                   <Code2 size={14} /> Schema JSON
                 </button>
+                <button
+                  className={`btn ${activeTab === 'cost' ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{
+                    padding: '0.4rem 0.95rem',
+                    fontSize: '0.78rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    background: activeTab === 'cost' ? 'linear-gradient(135deg, #0284c7, #4f46e5)' : 'rgba(14, 165, 233, 0.12)',
+                    border: activeTab === 'cost' ? '1px solid #38bdf8' : '1px solid rgba(56, 189, 248, 0.3)',
+                    color: activeTab === 'cost' ? '#ffffff' : '#38bdf8',
+                    fontWeight: 700
+                  }}
+                  onClick={() => setActiveTab('cost')}
+                  title="Cost Intelligence, Measurable BOQ & Multi-Option Comparison"
+                >
+                  <Calculator size={14} /> Cost & Optimization
+                </button>
               </div>
             </div>
 
@@ -960,6 +980,26 @@ export default function App() {
               <pre className="code-block" style={{ maxHeight: '350px' }}>
                 {JSON.stringify(layout, null, 2)}
               </pre>
+            )}
+
+            {/* Tab 7: Cost Intelligence & Design Optimization Engine */}
+            {activeTab === 'cost' && (
+              <CostOptimizer
+                layout={layout}
+                rawPrompt={designResult?.requirements?.rawPrompt || promptText}
+                requirements={designResult?.requirements}
+                onSelectAlternative={(alternative) => {
+                  setDesignResult(prev => ({
+                    ...prev,
+                    layout: alternative.layout,
+                    validation: alternative.layout.validation,
+                    costEstimate: {
+                      totalCost: alternative.boq.summary.grandTotalCost,
+                      currency: alternative.boq.currency.symbol,
+                    }
+                  }));
+                }}
+              />
             )}
 
             {/* Disclaimer Bar */}
